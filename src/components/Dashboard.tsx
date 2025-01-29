@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { SensorPanel } from "./SensorPanel";
+import { SensorChart } from "./SensorChart";
 import { useToast } from "@/hooks/use-toast";
 
 type SensorStatus = "normal" | "warning" | "error";
@@ -31,6 +32,7 @@ const mockSensors: Sensor[] = Array.from({ length: 10 }, (_, i) => ({
 
 export function Dashboard() {
   const [sensors, setSensors] = useState<Sensor[]>(mockSensors);
+  const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
   const { toast } = useToast();
 
   // Simulate real-time updates and check for threshold violations
@@ -75,9 +77,21 @@ export function Dashboard() {
       <h1 className="text-2xl font-bold mb-6">Мониторинг температуры и влажности</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {sensors.map(sensor => (
-          <SensorPanel key={sensor.id} {...sensor} />
+          <div key={sensor.id} onClick={() => setSelectedSensor(sensor)} className="cursor-pointer">
+            <SensorPanel {...sensor} />
+          </div>
         ))}
       </div>
+      {selectedSensor && (
+        <div className="mt-8">
+          <SensorChart
+            sensorId={selectedSensor.id}
+            sensorName={selectedSensor.name}
+            currentTemp={selectedSensor.temperature}
+            currentHumidity={selectedSensor.humidity}
+          />
+        </div>
+      )}
     </div>
   );
 }
