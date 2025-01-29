@@ -1,14 +1,28 @@
 import { useEffect, useState } from "react";
 import { SensorPanel } from "./SensorPanel";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+
+type SensorStatus = "normal" | "warning" | "error";
+
+interface Sensor {
+  id: number;
+  name: string;
+  temperature: number;
+  humidity: number;
+  status: SensorStatus;
+  thresholds: {
+    temperature: { min: number; max: number };
+    humidity: { min: number; max: number };
+  };
+}
 
 // Mock data for initial display with thresholds
-const mockSensors = Array.from({ length: 10 }, (_, i) => ({
+const mockSensors: Sensor[] = Array.from({ length: 10 }, (_, i) => ({
   id: i + 1,
   name: `Датчик ${i + 1}`,
   temperature: 20 + Math.random() * 10,
   humidity: 40 + Math.random() * 20,
-  status: "normal" as const,
+  status: "normal",
   thresholds: {
     temperature: { min: 18, max: 25 },
     humidity: { min: 30, max: 60 }
@@ -16,7 +30,7 @@ const mockSensors = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 export function Dashboard() {
-  const [sensors, setSensors] = useState(mockSensors);
+  const [sensors, setSensors] = useState<Sensor[]>(mockSensors);
   const { toast } = useToast();
 
   // Simulate real-time updates and check for threshold violations
@@ -28,12 +42,14 @@ export function Dashboard() {
           const newHumidity = 40 + Math.random() * 20;
           
           // Check for threshold violations
-          if (
+          const isTemperatureViolation = 
             newTemp < sensor.thresholds.temperature.min ||
-            newTemp > sensor.thresholds.temperature.max ||
+            newTemp > sensor.thresholds.temperature.max;
+          const isHumidityViolation = 
             newHumidity < sensor.thresholds.humidity.min ||
-            newHumidity > sensor.thresholds.humidity.max
-          ) {
+            newHumidity > sensor.thresholds.humidity.max;
+
+          if (isTemperatureViolation || isHumidityViolation) {
             toast({
               title: `Предупреждение: ${sensor.name}`,
               description: `Нарушение пороговых значений: Температура: ${newTemp.toFixed(2)}°C, Влажность: ${newHumidity.toFixed(2)}%`,
@@ -45,9 +61,7 @@ export function Dashboard() {
             ...sensor,
             temperature: newTemp,
             humidity: newHumidity,
-            status: newTemp > sensor.thresholds.temperature.max || newHumidity > sensor.thresholds.humidity.max
-              ? "warning"
-              : "normal"
+            status: isTemperatureViolation || isHumidityViolation ? "warning" : "normal"
           };
         })
       );

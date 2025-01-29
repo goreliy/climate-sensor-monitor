@@ -2,12 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThermometerIcon, Droplets, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type SensorStatus = "normal" | "warning" | "error";
+
 interface SensorPanelProps {
   id: number;
   name: string;
   temperature: number;
   humidity: number;
-  status: "normal" | "warning" | "error";
+  status: SensorStatus;
   thresholds: {
     temperature: { min: number; max: number };
     humidity: { min: number; max: number };
@@ -25,7 +27,7 @@ export function SensorPanel({
   const isTemperatureAlert = temperature < thresholds.temperature.min || temperature > thresholds.temperature.max;
   const isHumidityAlert = humidity < thresholds.humidity.min || humidity > thresholds.humidity.max;
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: SensorStatus) => {
     switch (status) {
       case "normal":
         return "text-green-500";
