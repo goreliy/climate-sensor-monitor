@@ -19,6 +19,16 @@ interface SensorChartProps {
   };
 }
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    dataKey: string;
+    payload: DataPoint;
+  }>;
+  label?: string;
+}
+
 export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity, thresholds }: SensorChartProps) {
   const [historicalData, setHistoricalData] = useState<DataPoint[]>([]);
 
@@ -45,17 +55,25 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
     return () => clearInterval(interval);
   }, [currentTemp, currentHumidity]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-2 border border-gray-200 rounded shadow">
-          <p className="text-sm">{`Время: ${label}`}</p>
-          <p className="text-sm text-blue-600">{`Температура: ${payload[0].value.toFixed(2)}°C`}</p>
-          <p className="text-sm text-cyan-600">{`Влажность: ${payload[1].value.toFixed(2)}%`}</p>
-        </div>
-      );
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+    if (!active || !payload || !payload.length) {
+      return null;
     }
-    return null;
+
+    const temperatureValue = payload[0]?.value;
+    const humidityValue = payload[1]?.value;
+
+    return (
+      <div className="bg-white p-2 border border-gray-200 rounded shadow">
+        <p className="text-sm">{`Время: ${label}`}</p>
+        {temperatureValue !== undefined && (
+          <p className="text-sm text-blue-600">{`Температура: ${temperatureValue.toFixed(2)}°C`}</p>
+        )}
+        {humidityValue !== undefined && (
+          <p className="text-sm text-cyan-600">{`Влажность: ${humidityValue.toFixed(2)}%`}</p>
+        )}
+      </div>
+    );
   };
 
   return (
