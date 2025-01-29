@@ -17,12 +17,11 @@ interface Sensor {
   };
 }
 
-// Mock data for initial display with thresholds
 const mockSensors: Sensor[] = Array.from({ length: 10 }, (_, i) => ({
   id: i + 1,
   name: `Датчик ${i + 1}`,
-  temperature: 20 + Math.random() * 10,
-  humidity: 40 + Math.random() * 20,
+  temperature: Number((20 + Math.random() * 10).toFixed(2)),
+  humidity: Number((40 + Math.random() * 20).toFixed(2)),
   status: "normal",
   thresholds: {
     temperature: { min: 18, max: 25 },
@@ -35,15 +34,13 @@ export function Dashboard() {
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
   const { toast } = useToast();
 
-  // Simulate real-time updates and check for threshold violations
   useEffect(() => {
     const interval = setInterval(() => {
       setSensors(prev =>
         prev.map(sensor => {
-          const newTemp = 20 + Math.random() * 10;
-          const newHumidity = 40 + Math.random() * 20;
+          const newTemp = Number((20 + Math.random() * 10).toFixed(2));
+          const newHumidity = Number((40 + Math.random() * 20).toFixed(2));
           
-          // Check for threshold violations
           const isTemperatureViolation = 
             newTemp < sensor.thresholds.temperature.min ||
             newTemp > sensor.thresholds.temperature.max;
@@ -89,6 +86,7 @@ export function Dashboard() {
             sensorName={selectedSensor.name}
             currentTemp={selectedSensor.temperature}
             currentHumidity={selectedSensor.humidity}
+            thresholds={selectedSensor.thresholds}
           />
         </div>
       )}
