@@ -1,3 +1,4 @@
+
 import { Dashboard } from "@/components/Dashboard";
 import { Settings } from "@/components/Settings";
 import { useState } from "react";
@@ -21,6 +22,6 @@ const Index = () => {
       {showSettings ? <Settings /> : <Dashboard />}
     </div>
   );
-};
+}
 
 export default Index;
