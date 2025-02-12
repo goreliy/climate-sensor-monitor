@@ -1,6 +1,8 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThermometerIcon, Droplets, AlertTriangle } from "lucide-react";
+import { ThermometerIcon, Droplets, AlertTriangle, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type SensorStatus = "normal" | "warning" | "error";
 
@@ -14,6 +16,7 @@ interface SensorPanelProps {
     temperature: { min: number; max: number };
     humidity: { min: number; max: number };
   };
+  onSettingsClick?: () => void;
 }
 
 export function SensorPanel({ 
@@ -22,7 +25,8 @@ export function SensorPanel({
   temperature, 
   humidity, 
   status,
-  thresholds 
+  thresholds,
+  onSettingsClick 
 }: SensorPanelProps) {
   const isTemperatureAlert = temperature < thresholds.temperature.min || temperature > thresholds.temperature.max;
   const isHumidityAlert = humidity < thresholds.humidity.min || humidity > thresholds.humidity.max;
@@ -50,6 +54,16 @@ export function SensorPanel({
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
             )}
             <span className={cn("h-3 w-3 rounded-full", getStatusColor(status))} />
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSettingsClick?.();
+              }}
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
           </div>
         </CardTitle>
       </CardHeader>

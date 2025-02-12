@@ -4,6 +4,9 @@ import { SensorPanel } from "./SensorPanel";
 import { SensorChart } from "./SensorChart";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Settings2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type SensorStatus = "normal" | "warning" | "error";
 
@@ -62,21 +65,23 @@ const fetchSensorData = async (): Promise<Sensor[]> => {
     setTimeout(() => {
       resolve(mockSensors.map(sensor => ({
         ...sensor,
-        temperature: sensor.temperature + (Math.random() * 2 - 1), // Добавляем случайные колебания
+        temperature: sensor.temperature + (Math.random() * 2 - 1),
         humidity: Math.max(0, Math.min(100, sensor.humidity + (Math.random() * 4 - 2)))
       })));
-    }, 500); // Имитация задержки сети
+    }, 500);
   });
 };
 
 export function Dashboard() {
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSensorSettings, setShowSensorSettings] = useState<number | null>(null);
   const { toast } = useToast();
 
   const { data: sensors = [], error, isLoading } = useQuery({
     queryKey: ['sensors'],
     queryFn: fetchSensorData,
-    refetchInterval: 5000, // Обновление каждые 5 секунд
+    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -95,14 +100,28 @@ export function Dashboard() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Мониторинг температуры и влажности</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Мониторинг температуры и влажности</h1>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setShowSettings(true)}
+        >
+          <Settings2 className="h-4 w-4" />
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {sensors.map((sensor: Sensor) => (
-          <div key={sensor.id} onClick={() => setSelectedSensor(sensor)} className="cursor-pointer">
-            <SensorPanel {...sensor} />
+          <div key={sensor.id} onClick={() => setSelectedSensor(sensor)}>
+            <SensorPanel 
+              {...sensor} 
+              onSettingsClick={() => setShowSensorSettings(sensor.id)}
+            />
           </div>
         ))}
       </div>
+
       {selectedSensor && (
         <div className="mt-8">
           <SensorChart
@@ -114,6 +133,40 @@ export function Dashboard() {
           />
         </div>
       )}
+
+      {/* Диалог общих настроек */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Настройки системы</DialogTitle>
+          </DialogHeader>
+          <div className="h-[80vh] overflow-y-auto">
+            <iframe 
+              src="/settings" 
+              className="w-full h-full border-none"
+              title="Настройки системы"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог настроек конкретного датчика */}
+      <Dialog open={showSensorSettings !== null} onOpenChange={() => setShowSensorSettings(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Настройки датчика {sensors.find(s => s.id === showSensorSettings)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="h-[60vh] overflow-y-auto">
+            <iframe 
+              src={`/settings?sensor=${showSensorSettings}`} 
+              className="w-full h-full border-none"
+              title="Настройки датчика"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
