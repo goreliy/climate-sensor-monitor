@@ -133,6 +133,33 @@ app.post('/api/sensors/config', (req, res) => {
   });
 });
 
+// Мок настроек для тестирования
+let mockSettings = {
+  modbusPort: "COM1",
+  modbusBaudRate: 9600,
+  modbusDataBits: 8,
+  modbusParity: "none",
+  modbusStopBits: 1,
+  dbPath: "./data/sensors.db",
+  logLevel: "info",
+  logPath: "./logs/app.log",
+  telegramToken: "",
+  telegramChatId: "",
+  enableNotifications: true,
+  pollingInterval: 5000,
+};
+
+// Получение настроек
+app.get('/api/settings', (req, res) => {
+  res.json(mockSettings);
+});
+
+// Сохранение настроек
+app.post('/api/settings', (req, res) => {
+  mockSettings = { ...mockSettings, ...req.body };
+  res.json({ success: true });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
@@ -13,6 +13,7 @@ import { Form } from "@/components/ui/form";
 export function Settings() {
   const { toast } = useToast();
   const [sensors, setSensors] = useState<SensorConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<SettingsFormData>({
     defaultValues: {
@@ -30,6 +31,47 @@ export function Settings() {
       pollingInterval: 5000,
     },
   });
+
+  // Загрузка существующих настроек при монтировании компонента
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        setIsLoading(true);
+        const [settingsResponse, sensorsResponse] = await Promise.all([
+          fetch('http://localhost:3001/api/settings'),
+          fetch('http://localhost:3001/api/sensors')
+        ]);
+
+        if (settingsResponse.ok) {
+          const settings = await settingsResponse.json();
+          form.reset(settings);
+        }
+
+        if (sensorsResponse.ok) {
+          const sensorsData = await sensorsResponse.json();
+          setSensors(sensorsData.map((sensor: any) => ({
+            id: sensor.id,
+            name: sensor.name,
+            tempMin: sensor.temp_min,
+            tempMax: sensor.temp_max,
+            humidityMin: sensor.humidity_min,
+            humidityMax: sensor.humidity_max,
+          })));
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить настройки",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [form, toast]);
 
   const onSubmit = async (data: SettingsFormData) => {
     try {
@@ -65,6 +107,16 @@ export function Settings() {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4">
+        <div className="flex items-center justify-center h-[200px]">
+          Загрузка настроек...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4">
