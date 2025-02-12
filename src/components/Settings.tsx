@@ -8,6 +8,7 @@ import { ModbusSettings } from "./settings/ModbusSettings";
 import { LoggingSettings } from "./settings/LoggingSettings";
 import { TelegramSettings } from "./settings/TelegramSettings";
 import { SettingsFormData, SensorConfig } from "./settings/types";
+import { Form } from "@/components/ui/form";
 
 export function Settings() {
   const { toast } = useToast();
@@ -69,23 +70,24 @@ export function Settings() {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Настройки системы</h1>
       
-      <div className="grid gap-6">
-        <SensorManagement
-          sensors={sensors}
-          onSensorsChange={setSensors}
-        />
-        <ModbusSettings form={form} />
-        <LoggingSettings form={form} />
-        <TelegramSettings form={form} />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+          <SensorManagement
+            sensors={sensors}
+            onSensorsChange={setSensors}
+          />
+          <ModbusSettings form={form} />
+          <LoggingSettings form={form} />
+          <TelegramSettings form={form} />
 
-        <Button 
-          type="submit" 
-          onClick={form.handleSubmit(onSubmit)}
-          className="w-full md:w-auto"
-        >
-          Сохранить настройки
-        </Button>
-      </div>
+          <Button 
+            type="submit" 
+            className="w-full md:w-auto"
+          >
+            Сохранить настройки
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 }
