@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { SensorPanel } from "./SensorPanel";
 import { SensorChart } from "./SensorChart";
@@ -18,12 +19,54 @@ interface Sensor {
   };
 }
 
-const fetchSensorData = async () => {
-  const response = await fetch('http://localhost:3001/api/sensors');
-  if (!response.ok) {
-    throw new Error('Failed to fetch sensor data');
+// Моковые данные для демонстрации
+const mockSensors: Sensor[] = [
+  {
+    id: 1,
+    name: "Датчик 1",
+    temperature: 23.5,
+    humidity: 45,
+    status: "normal",
+    thresholds: {
+      temperature: { min: 18, max: 26 },
+      humidity: { min: 30, max: 60 }
+    }
+  },
+  {
+    id: 2,
+    name: "Датчик 2",
+    temperature: 27.8,
+    humidity: 65,
+    status: "warning",
+    thresholds: {
+      temperature: { min: 18, max: 26 },
+      humidity: { min: 30, max: 60 }
+    }
+  },
+  {
+    id: 3,
+    name: "Датчик 3",
+    temperature: 31.2,
+    humidity: 75,
+    status: "error",
+    thresholds: {
+      temperature: { min: 18, max: 26 },
+      humidity: { min: 30, max: 60 }
+    }
   }
-  return response.json();
+];
+
+const fetchSensorData = async (): Promise<Sensor[]> => {
+  // В демо-режиме возвращаем моковые данные
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(mockSensors.map(sensor => ({
+        ...sensor,
+        temperature: sensor.temperature + (Math.random() * 2 - 1), // Добавляем случайные колебания
+        humidity: Math.max(0, Math.min(100, sensor.humidity + (Math.random() * 4 - 2)))
+      })));
+    }, 500); // Имитация задержки сети
+  });
 };
 
 export function Dashboard() {
