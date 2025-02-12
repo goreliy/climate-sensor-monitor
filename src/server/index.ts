@@ -1,3 +1,4 @@
+
 import express from 'express';
 import sqlite3 from 'sqlite3';
 import cors from 'cors';
@@ -81,6 +82,55 @@ app.post('/api/readings', (req, res) => {
       res.json({ id: this.lastID });
     }
   );
+});
+
+// Сохранение настроек датчиков
+app.post('/api/sensors/config', (req, res) => {
+  const sensors = req.body;
+  
+  if (!Array.isArray(sensors) || sensors.length > 60) {
+    res.status(400).json({ error: 'Invalid sensors configuration' });
+    return;
+  }
+
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    
+    // Очищаем существующие датчики
+    db.run('DELETE FROM sensors', (err) => {
+      if (err) {
+        db.run('ROLLBACK');
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      // Добавляем новые датчики
+      const stmt = db.prepare(
+        'INSERT INTO sensors (name, temp_min, temp_max, humidity_min, humidity_max) VALUES (?, ?, ?, ?, ?)'
+      );
+
+      sensors.forEach((sensor) => {
+        stmt.run([
+          sensor.name,
+          sensor.tempMin,
+          sensor.tempMax,
+          sensor.humidityMin,
+          sensor.humidityMax
+        ]);
+      });
+
+      stmt.finalize();
+      
+      db.run('COMMIT', (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ success: true });
+      });
+    });
+  });
 });
 
 const PORT = process.env.PORT || 3001;
