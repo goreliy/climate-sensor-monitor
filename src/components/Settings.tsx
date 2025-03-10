@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ export function Settings({ useMockData = true }: SettingsProps) {
       modbusDataBits: 8,
       modbusParity: "none",
       modbusStopBits: 1,
+      modbusAutoStart: false,
       dbPath: "./data/sensors.db",
       logLevel: "info",
       logPath: "./logs/app.log",
@@ -52,13 +52,11 @@ export function Settings({ useMockData = true }: SettingsProps) {
       try {
         setIsLoading(true);
         
-        // Using Promise.all to make parallel requests
         const [settingsResponse, sensorsResponse] = await Promise.all([
           fetch('http://localhost:3001/api/settings'),
           fetch('http://localhost:3001/api/sensors')
         ]);
 
-        // Handle settings response
         if (settingsResponse.ok) {
           const settings = await settingsResponse.json();
           form.reset(settings);
@@ -66,11 +64,9 @@ export function Settings({ useMockData = true }: SettingsProps) {
           throw new Error('Failed to load settings');
         }
 
-        // Handle sensors response
         if (sensorsResponse.ok) {
           const sensorsData = await sensorsResponse.json();
           
-          // Map the sensor data to our SensorConfig format
           const mappedSensors = sensorsData.map((sensor: any) => ({
             id: sensor.id,
             name: sensor.name,
@@ -92,7 +88,6 @@ export function Settings({ useMockData = true }: SettingsProps) {
           variant: "destructive",
         });
         
-        // If we're using mock data and failed to load, create 10 mock sensors
         if (useMockData) {
           const mockSensors = Array.from({ length: 10 }, (_, i) => ({
             id: i + 1,
@@ -116,7 +111,6 @@ export function Settings({ useMockData = true }: SettingsProps) {
     try {
       setIsSaving(true);
       
-      // Using Promise.all to make parallel requests
       const [settingsResponse, sensorsResponse] = await Promise.all([
         fetch('http://localhost:3001/api/settings', {
           method: 'POST',
@@ -135,14 +129,12 @@ export function Settings({ useMockData = true }: SettingsProps) {
         })
       ]);
 
-      // Check if both requests were successful
       if (!settingsResponse.ok || !sensorsResponse.ok) {
         throw new Error(
           `Failed to save: ${!settingsResponse.ok ? 'Settings' : ''} ${!sensorsResponse.ok ? 'Sensors' : ''}`
         );
       }
 
-      // Save to JSON file
       const jsonResponse = await fetch('http://localhost:3001/api/settings/save-json', {
         method: 'POST',
         headers: {
@@ -182,7 +174,7 @@ export function Settings({ useMockData = true }: SettingsProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ count: 10 }), // Generate 10 mock sensors
+        body: JSON.stringify({ count: 10 }),
       });
       
       if (response.ok) {
@@ -193,7 +185,6 @@ export function Settings({ useMockData = true }: SettingsProps) {
             description: "Моковые датчики успешно созданы",
           });
           
-          // Refresh sensor list
           const sensorsResponse = await fetch('http://localhost:3001/api/sensors');
           if (sensorsResponse.ok) {
             const sensorsData = await sensorsResponse.json();

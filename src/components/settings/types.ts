@@ -5,6 +5,7 @@ export interface SettingsFormData {
   modbusDataBits: number;
   modbusParity: string;
   modbusStopBits: number;
+  modbusAutoStart: boolean; // New field for auto-start
   dbPath: string;
   logLevel: string;
   logPath: string;
