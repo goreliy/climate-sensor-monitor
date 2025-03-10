@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -10,10 +9,13 @@ import { TelegramSettings } from "./settings/TelegramSettings";
 import { SettingsFormData, SensorConfig } from "./settings/types";
 import { Form } from "@/components/ui/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ThemeToggle } from "./ThemeToggle";
 import { Visualization } from "./settings/Visualization";
 
-export function Settings() {
+interface SettingsProps {
+  useMockData?: boolean;
+}
+
+export function Settings({ useMockData = true }: SettingsProps) {
   const { toast } = useToast();
   const [sensors, setSensors] = useState<SensorConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,6 +31,7 @@ export function Settings() {
       logLevel: "info",
       logPath: "./logs/app.log",
       logSizeLimit: 100,
+      modbusLogSize: 1,
       telegramToken: "",
       telegramChatId: "",
       enableNotifications: true,
@@ -40,7 +43,6 @@ export function Settings() {
     },
   });
 
-  // Загрузка существующих настроек при монтировании компонента
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -103,6 +105,14 @@ export function Settings() {
         throw new Error('Failed to save settings');
       }
 
+      await fetch('http://localhost:3001/api/settings/save-json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ settings: data, sensors }),
+      });
+
       toast({
         title: "Успех",
         description: "Настройки успешно сохранены",
@@ -126,7 +136,6 @@ export function Settings() {
             title: "Успех",
             description: "Моковые датчики успешно созданы",
           });
-          // Загружаем созданные датчики
           const sensorsResponse = await fetch('http://localhost:3001/api/sensors');
           if (sensorsResponse.ok) {
             const sensorsData = await sensorsResponse.json();
@@ -168,7 +177,6 @@ export function Settings() {
           <Button variant="outline" onClick={generateMockSensors}>
             Создать моковые датчики
           </Button>
-          <ThemeToggle />
         </div>
       </div>
       
@@ -191,7 +199,7 @@ export function Settings() {
             </TabsContent>
             
             <TabsContent value="modbus">
-              <ModbusSettings form={form} />
+              <ModbusSettings form={form} useMockData={useMockData} />
             </TabsContent>
             
             <TabsContent value="logging">

@@ -8,14 +8,15 @@ export interface SettingsFormData {
   dbPath: string;
   logLevel: string;
   logPath: string;
-  logSizeLimit: number; // New field for log size limit in MB
+  logSizeLimit: number; // Размер лога в МБ
+  modbusLogSize: number; // Новое поле для размера логов Modbus в МБ
   telegramToken: string;
   telegramChatId: string;
   enableNotifications: boolean;
-  sendThresholdAlerts: boolean; // New field for threshold alerts
-  sendPeriodicReports: boolean; // New field for periodic reports
-  reportFrequency: "daily" | "weekly" | "monthly"; // New field for report frequency
-  allowCommandRequests: boolean; // New field for command requests
+  sendThresholdAlerts: boolean; // Поле для уведомлений о превышении порога
+  sendPeriodicReports: boolean; // Поле для периодических отчётов
+  reportFrequency: "daily" | "weekly" | "monthly"; // Частота отчётов
+  allowCommandRequests: boolean; // Поле для запросов команд
   pollingInterval: number;
 }
 
