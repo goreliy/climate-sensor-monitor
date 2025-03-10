@@ -1,16 +1,14 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
-import { UseFormReturn } from "react-hook-form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SettingsFormData } from "./types";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { UseFormReturn } from "react-hook-form";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Activity, Save } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { ModbusVisualizer } from "../ModbusVisualizer";
 
 interface ModbusSettingsProps {
   form: UseFormReturn<SettingsFormData>;
@@ -18,82 +16,48 @@ interface ModbusSettingsProps {
 }
 
 export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps) {
-  const { toast } = useToast();
-  const [isPortOpen, setIsPortOpen] = useState(false);
-  const [modbusLogs, setModbusLogs] = useState<string[]>([]);
-  const [modbusLogSize, setModbusLogSize] = useState(1); // Default 1MB
+  const [comPortStatus, setComPortStatus] = useState<'open' | 'closed' | 'error'>('closed');
 
-  // Simulate port status checking
   useEffect(() => {
-    if (!useMockData) {
-      // В реальном приложении здесь был бы API-запрос для проверки статуса порта
-      const checkPortStatus = async () => {
-        try {
-          const response = await fetch('http://localhost:3001/api/modbus/status');
+    const checkComPortStatus = async () => {
+      if (useMockData) {
+        // In mock mode, simulate the port being closed
+        setComPortStatus('closed');
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3001/api/modbus/status');
+        if (response.ok) {
           const data = await response.json();
-          setIsPortOpen(data.isOpen);
-        } catch (error) {
-          console.error('Failed to check port status:', error);
-          setIsPortOpen(false);
+          setComPortStatus(data.isOpen ? 'open' : 'closed');
+        } else {
+          setComPortStatus('error');
         }
-      };
-      
-      checkPortStatus();
-      const interval = setInterval(checkPortStatus, 5000);
-      return () => clearInterval(interval);
-    } else {
-      // В режиме мок-данных симулируем открытый порт
-      setIsPortOpen(true);
-    }
+      } catch (error) {
+        console.error('Failed to check COM port status:', error);
+        setComPortStatus('error');
+      }
+    };
+
+    checkComPortStatus();
+
+    // Poll the status every 5 seconds
+    const interval = setInterval(checkComPortStatus, 5000);
+    return () => clearInterval(interval);
   }, [useMockData]);
 
-  // Simulate modbus data communication
-  useEffect(() => {
-    if (!useMockData && isPortOpen) {
-      // Симуляция логов Modbus
-      const modbusTypes = ['03 (Read Holding Registers)', '04 (Read Input Registers)', '06 (Write Single Register)'];
-      const addresses = ['01', '02', '03', '04', '05'];
-      
-      const generateModbusLog = () => {
-        const timestamp = new Date().toLocaleTimeString();
-        const type = modbusTypes[Math.floor(Math.random() * modbusTypes.length)];
-        const address = addresses[Math.floor(Math.random() * addresses.length)];
-        const dataLength = Math.floor(Math.random() * 10) + 1;
-        const reqHex = Array.from({length: dataLength}, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(' ');
-        const respHex = Array.from({length: dataLength + 2}, () => Math.floor(Math.random() * 256).toString(16).padStart(2, '0')).join(' ');
-        const crc = Math.floor(Math.random() * 65536).toString(16).padStart(4, '0');
-        
-        return `[${timestamp}] TX > ${address} ${type} ${reqHex} CRC:${crc}\n[${timestamp}] RX < ${address} ${type} ${respHex} CRC:${crc}`;
-      };
-      
-      const interval = setInterval(() => {
-        const newLog = generateModbusLog();
-        setModbusLogs(prev => [...prev.slice(-99), newLog]);
-      }, 2000);
-      
-      return () => clearInterval(interval);
+  const getStatusBadge = () => {
+    switch (comPortStatus) {
+      case 'open':
+        return <Badge variant="success" className="bg-green-500">Открыт</Badge>;
+      case 'closed':
+        return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Закрыт</Badge>;
+      case 'error':
+        return <Badge variant="destructive">Ошибка</Badge>;
+      default:
+        return <Badge variant="outline">Неизвестно</Badge>;
     }
-  }, [useMockData, isPortOpen]);
-
-  const saveSettingsAsJson = () => {
-    const settingsData = form.getValues();
-    const jsonData = JSON.stringify(settingsData, null, 2);
-    
-    // Создаем блоб и скачиваем его
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'modbus_settings.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Настройки сохранены",
-      description: "Файл modbus_settings.json успешно создан",
-    });
   };
 
   return (
@@ -102,23 +66,14 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Настройки Modbus RTU</CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge variant={isPortOpen ? "default" : "destructive"} className="flex items-center gap-1">
-                <Activity className="h-3 w-3" />
-                {isPortOpen ? "Порт открыт" : "Порт закрыт"}
-              </Badge>
-              <Button variant="outline" size="sm" onClick={saveSettingsAsJson}>
-                <Save className="h-4 w-4 mr-2" />
-                Сохранить в JSON
-              </Button>
+            <div className="flex items-center space-x-2">
+              <Label>Статус COM-порта:</Label>
+              {getStatusBadge()}
             </div>
           </div>
-          <CardDescription>
-            Настройки соединения Modbus RTU для взаимодействия с датчиками
-          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <FormField
               control={form.control}
               name="modbusPort"
@@ -126,100 +81,161 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
                 <FormItem>
                   <FormLabel>COM порт</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder="COM1" />
                   </FormControl>
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="modbusBaudRate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Скорость передачи (бод)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
+                  <FormLabel>Скорость передачи</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    defaultValue={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите скорость" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="4800">4800</SelectItem>
+                      <SelectItem value="9600">9600</SelectItem>
+                      <SelectItem value="19200">19200</SelectItem>
+                      <SelectItem value="38400">38400</SelectItem>
+                      <SelectItem value="57600">57600</SelectItem>
+                      <SelectItem value="115200">115200</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="modbusDataBits"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Биты данных</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} />
-                  </FormControl>
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    defaultValue={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите биты данных" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="7">7</SelectItem>
+                      <SelectItem value="8">8</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="modbusParity"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Четность</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите четность" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Нет</SelectItem>
+                      <SelectItem value="even">Четный</SelectItem>
+                      <SelectItem value="odd">Нечетный</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
-              name="modbusLogSize"
+              name="modbusStopBits"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Размер лога Modbus (МБ)</FormLabel>
+                  <FormLabel>Стоп-биты</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    defaultValue={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите стоп-биты" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="pollingInterval"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Интервал опроса (мс)</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      onChange={(e) => {
-                        field.onChange(e);
-                        setModbusLogSize(Number(e.target.value));
-                      }}
+                    <Input
+                      {...field}
+                      type="number"
+                      min={100}
+                      max={60000}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormDescription>
-                    Максимальный размер файла лога Modbus в мегабайтах
+                    Частота опроса устройств (100 мс - 60 сек)
                   </FormDescription>
                 </FormItem>
               )}
             />
           </div>
+          
+          <FormField
+            control={form.control}
+            name="modbusLogSize"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Размер лога Modbus (МБ)</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="number"
+                    min={1}
+                    max={1000}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Максимальный размер журнала запросов Modbus
+                </FormDescription>
+              </FormItem>
+            )}
+          />
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Визуализация Modbus</CardTitle>
-          <CardDescription>
-            Обмен данными в режиме реального времени
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[300px] w-full border rounded-md p-4 bg-muted font-mono text-sm whitespace-pre">
-            {modbusLogs.length > 0 ? (
-              modbusLogs.map((log, index) => (
-                <div key={index} className="mb-2">
-                  {log}
-                </div>
-              ))
-            ) : (
-              <div className="text-center text-muted-foreground py-8">
-                {useMockData 
-                  ? "В режиме мок-данных визуализация Modbus недоступна" 
-                  : isPortOpen 
-                    ? "Ожидание данных Modbus..." 
-                    : "COM порт закрыт. Откройте порт для просмотра данных"}
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
+      <ModbusVisualizer />
     </div>
   );
 }

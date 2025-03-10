@@ -1,13 +1,16 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+  ResponsiveContainer, ReferenceLine, Brush, ZoomOutMap
+} from "recharts";
 import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays, subDays } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ZoomIn, ZoomOut, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DataPoint {
@@ -43,6 +46,10 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
     from: subDays(new Date(), 1),
     to: new Date()
   });
+  
+  // Zoom state
+  const [temperatureZoom, setTemperatureZoom] = useState<{ left: number; right: number } | null>(null);
+  const [humidityZoom, setHumidityZoom] = useState<{ left: number; right: number } | null>(null);
   
   // Предопределенные диапазоны дат
   const predefinedRanges = [
@@ -139,6 +146,15 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
     const from = subDays(to, days);
     setDateRange({ from, to });
   };
+  
+  // Reset zoom function
+  const resetZoom = (chartType: 'temperature' | 'humidity') => {
+    if (chartType === 'temperature') {
+      setTemperatureZoom(null);
+    } else {
+      setHumidityZoom(null);
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -199,8 +215,21 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
       <CardContent>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="h-[300px]">
+            <div className="flex justify-end mb-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => resetZoom('temperature')}
+                disabled={!temperatureZoom}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" /> Сбросить масштаб
+              </Button>
+            </div>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historicalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart 
+                data={historicalData} 
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="timestamp"
@@ -209,10 +238,13 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
                   interval="preserveStartEnd"
                 />
                 <YAxis 
-                  domain={[
-                    Math.floor(Math.min(thresholds.temperature.min - 2, Math.min(...historicalData.map(d => d.temperature)))),
-                    Math.ceil(Math.max(thresholds.temperature.max + 2, Math.max(...historicalData.map(d => d.temperature))))
-                  ]}
+                  domain={temperatureZoom ? 
+                    [temperatureZoom.left, temperatureZoom.right] : 
+                    [
+                      Math.floor(Math.min(thresholds.temperature.min - 2, Math.min(...historicalData.map(d => d.temperature)))),
+                      Math.ceil(Math.max(thresholds.temperature.max + 2, Math.max(...historicalData.map(d => d.temperature))))
+                    ]
+                  }
                   tick={{ fontSize: 12 }}
                   tickFormatter={(value) => value.toFixed(1)}
                 />
@@ -238,12 +270,31 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
                   dot={false}
                   strokeWidth={2}
                 />
+                <Brush 
+                  dataKey="timestamp" 
+                  height={30} 
+                  stroke="#8884d8"
+                  tickFormatter={formatXAxis}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="h-[300px]">
+            <div className="flex justify-end mb-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => resetZoom('humidity')}
+                disabled={!humidityZoom}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" /> Сбросить масштаб
+              </Button>
+            </div>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historicalData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart 
+                data={historicalData} 
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="timestamp"
@@ -252,10 +303,13 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
                   interval="preserveStartEnd"
                 />
                 <YAxis 
-                  domain={[
-                    Math.floor(Math.min(thresholds.humidity.min - 5, Math.min(...historicalData.map(d => d.humidity)))),
-                    Math.ceil(Math.max(thresholds.humidity.max + 5, Math.max(...historicalData.map(d => d.humidity))))
-                  ]}
+                  domain={humidityZoom ? 
+                    [humidityZoom.left, humidityZoom.right] : 
+                    [
+                      Math.floor(Math.min(thresholds.humidity.min - 5, Math.min(...historicalData.map(d => d.humidity)))),
+                      Math.ceil(Math.max(thresholds.humidity.max + 5, Math.max(...historicalData.map(d => d.humidity))))
+                    ]
+                  }
                   tick={{ fontSize: 12 }}
                   tickFormatter={(value) => value.toFixed(1)}
                 />
@@ -280,6 +334,12 @@ export function SensorChart({ sensorId, sensorName, currentTemp, currentHumidity
                   name="Влажность (%)"
                   dot={false}
                   strokeWidth={2}
+                />
+                <Brush 
+                  dataKey="timestamp" 
+                  height={30} 
+                  stroke="#8884d8"
+                  tickFormatter={formatXAxis}
                 />
               </LineChart>
             </ResponsiveContainer>
