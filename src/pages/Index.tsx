@@ -56,7 +56,7 @@ const Index = () => {
           </Button>
         </div>
       </div>
-      {showSettings ? <Settings useMockData={useMockData} /> : <Dashboard />}
+      {showSettings ? <Settings useMockData={useMockData} /> : <Dashboard useMockData={useMockData} />}
     </div>
   );
 }
