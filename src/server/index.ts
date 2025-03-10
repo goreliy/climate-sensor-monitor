@@ -3,10 +3,20 @@ import express from 'express';
 import sqlite3 from 'sqlite3';
 import cors from 'cors';
 import path from 'path';
+import { VisualizationMap } from '@/components/settings/types';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Database-related types
+interface DBVisualizationMap {
+  id: number;
+  name: string;
+  image_path: string;
+  sensor_placements: string;
+  created_at: string;
+}
 
 // Инициализация базы данных
 const db = new sqlite3.Database(path.join(__dirname, 'sensors.db'), (err) => {
@@ -173,7 +183,7 @@ app.post('/api/visualizations', (req, res) => {
 });
 
 app.get('/api/visualizations', (req, res) => {
-  db.all('SELECT * FROM visualization_maps', [], (err, rows) => {
+  db.all('SELECT * FROM visualization_maps', [], (err, rows: DBVisualizationMap[]) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -181,7 +191,9 @@ app.get('/api/visualizations', (req, res) => {
     
     // Преобразуем JSON строки в объекты
     const maps = rows.map(row => ({
-      ...row,
+      id: row.id,
+      name: row.name,
+      imagePath: row.image_path,
       sensorPlacements: JSON.parse(row.sensor_placements),
     }));
     
@@ -192,7 +204,7 @@ app.get('/api/visualizations', (req, res) => {
 app.get('/api/visualizations/:id', (req, res) => {
   const { id } = req.params;
   
-  db.get('SELECT * FROM visualization_maps WHERE id = ?', [id], (err, row) => {
+  db.get('SELECT * FROM visualization_maps WHERE id = ?', [id], (err, row: DBVisualizationMap) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -205,7 +217,9 @@ app.get('/api/visualizations/:id', (req, res) => {
     
     // Преобразуем JSON строку в объект
     const map = {
-      ...row,
+      id: row.id,
+      name: row.name,
+      imagePath: row.image_path,
       sensorPlacements: JSON.parse(row.sensor_placements),
     };
     
