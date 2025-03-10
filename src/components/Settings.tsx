@@ -9,6 +9,9 @@ import { LoggingSettings } from "./settings/LoggingSettings";
 import { TelegramSettings } from "./settings/TelegramSettings";
 import { SettingsFormData, SensorConfig } from "./settings/types";
 import { Form } from "@/components/ui/form";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ThemeToggle } from "./ThemeToggle";
+import { Visualization } from "./settings/Visualization";
 
 export function Settings() {
   const { toast } = useToast();
@@ -25,9 +28,14 @@ export function Settings() {
       dbPath: "./data/sensors.db",
       logLevel: "info",
       logPath: "./logs/app.log",
+      logSizeLimit: 100,
       telegramToken: "",
       telegramChatId: "",
       enableNotifications: true,
+      sendThresholdAlerts: true,
+      sendPeriodicReports: false,
+      reportFrequency: "daily",
+      allowCommandRequests: true,
       pollingInterval: 5000,
     },
   });
@@ -108,6 +116,40 @@ export function Settings() {
     }
   };
 
+  const generateMockSensors = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/generate-mock-sensors');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          toast({
+            title: "Успех",
+            description: "Моковые датчики успешно созданы",
+          });
+          // Загружаем созданные датчики
+          const sensorsResponse = await fetch('http://localhost:3001/api/sensors');
+          if (sensorsResponse.ok) {
+            const sensorsData = await sensorsResponse.json();
+            setSensors(sensorsData.map((sensor: any) => ({
+              id: sensor.id,
+              name: sensor.name,
+              tempMin: sensor.temp_min,
+              tempMax: sensor.temp_max,
+              humidityMin: sensor.humidity_min,
+              humidityMax: sensor.humidity_max,
+            })));
+          }
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать моковые датчики",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
@@ -120,26 +162,59 @@ export function Settings() {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Настройки системы</h1>
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-          <SensorManagement
-            sensors={sensors}
-            onSensorsChange={setSensors}
-          />
-          <ModbusSettings form={form} />
-          <LoggingSettings form={form} />
-          <TelegramSettings form={form} />
-
-          <Button 
-            type="submit" 
-            className="w-full md:w-auto"
-          >
-            Сохранить настройки
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Настройки системы</h1>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={generateMockSensors}>
+            Создать моковые датчики
           </Button>
-        </form>
-      </Form>
+          <ThemeToggle />
+        </div>
+      </div>
+      
+      <Tabs defaultValue="sensors">
+        <TabsList className="mb-4">
+          <TabsTrigger value="sensors">Датчики</TabsTrigger>
+          <TabsTrigger value="modbus">Modbus</TabsTrigger>
+          <TabsTrigger value="logging">Логирование</TabsTrigger>
+          <TabsTrigger value="telegram">Telegram</TabsTrigger>
+          <TabsTrigger value="visualization">Визуализация</TabsTrigger>
+        </TabsList>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
+            <TabsContent value="sensors">
+              <SensorManagement
+                sensors={sensors}
+                onSensorsChange={setSensors}
+              />
+            </TabsContent>
+            
+            <TabsContent value="modbus">
+              <ModbusSettings form={form} />
+            </TabsContent>
+            
+            <TabsContent value="logging">
+              <LoggingSettings form={form} />
+            </TabsContent>
+            
+            <TabsContent value="telegram">
+              <TelegramSettings form={form} />
+            </TabsContent>
+            
+            <TabsContent value="visualization">
+              <Visualization />
+            </TabsContent>
+
+            <Button 
+              type="submit" 
+              className="w-full md:w-auto"
+            >
+              Сохранить настройки
+            </Button>
+          </form>
+        </Form>
+      </Tabs>
     </div>
   );
 }

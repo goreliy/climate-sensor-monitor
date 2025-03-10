@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { UseFormReturn } from "react-hook-form";
 import { SettingsFormData } from "./types";
 
@@ -50,6 +50,21 @@ export function LoggingSettings({ form }: LoggingSettingsProps) {
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="logSizeLimit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Максимальный размер лог-файла (МБ)</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Максимальный размер файла лога в мегабайтах, после которого он будет архивирован
+                </FormDescription>
               </FormItem>
             )}
           />

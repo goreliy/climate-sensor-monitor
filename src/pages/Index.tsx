@@ -4,13 +4,15 @@ import { Settings } from "@/components/Settings";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Settings2 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [showSettings, setShowSettings] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex justify-end p-4">
+      <div className="flex justify-end p-4 gap-2">
+        <ThemeToggle />
         <Button
           variant="outline"
           size="icon"

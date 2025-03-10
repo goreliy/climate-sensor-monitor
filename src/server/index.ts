@@ -37,6 +37,17 @@ const db = new sqlite3.Database(path.join(__dirname, 'sensors.db'), (err) => {
         humidity_max REAL NOT NULL
       )
     `);
+
+    // Создание таблицы для схем визуализации
+    db.run(`
+      CREATE TABLE IF NOT EXISTS visualization_maps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        image_path TEXT NOT NULL,
+        sensor_placements TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   }
 });
 
@@ -53,11 +64,22 @@ app.get('/api/sensors', (req, res) => {
 
 app.get('/api/sensors/:id/readings', (req, res) => {
   const { id } = req.params;
-  const { limit = 30 } = req.query;
+  const { limit = 30, startDate, endDate } = req.query;
+  
+  let query = 'SELECT * FROM sensor_readings WHERE sensor_id = ?';
+  const params = [id];
+  
+  if (startDate && endDate) {
+    query += ' AND timestamp BETWEEN ? AND ?';
+    params.push(startDate as string, endDate as string);
+  }
+  
+  query += ' ORDER BY timestamp DESC LIMIT ?';
+  params.push(limit);
   
   db.all(
-    'SELECT * FROM sensor_readings WHERE sensor_id = ? ORDER BY timestamp DESC LIMIT ?',
-    [id, limit],
+    query,
+    params,
     (err, rows) => {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -133,6 +155,64 @@ app.post('/api/sensors/config', (req, res) => {
   });
 });
 
+// API для работы с визуализациями
+app.post('/api/visualizations', (req, res) => {
+  const { name, imagePath, sensorPlacements } = req.body;
+  
+  db.run(
+    'INSERT INTO visualization_maps (name, image_path, sensor_placements) VALUES (?, ?, ?)',
+    [name, imagePath, JSON.stringify(sensorPlacements)],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, success: true });
+    }
+  );
+});
+
+app.get('/api/visualizations', (req, res) => {
+  db.all('SELECT * FROM visualization_maps', [], (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    // Преобразуем JSON строки в объекты
+    const maps = rows.map(row => ({
+      ...row,
+      sensorPlacements: JSON.parse(row.sensor_placements),
+    }));
+    
+    res.json(maps);
+  });
+});
+
+app.get('/api/visualizations/:id', (req, res) => {
+  const { id } = req.params;
+  
+  db.get('SELECT * FROM visualization_maps WHERE id = ?', [id], (err, row) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    
+    if (!row) {
+      res.status(404).json({ error: 'Visualization not found' });
+      return;
+    }
+    
+    // Преобразуем JSON строку в объект
+    const map = {
+      ...row,
+      sensorPlacements: JSON.parse(row.sensor_placements),
+    };
+    
+    res.json(map);
+  });
+});
+
 // Мок настроек для тестирования
 let mockSettings = {
   modbusPort: "COM1",
@@ -143,9 +223,14 @@ let mockSettings = {
   dbPath: "./data/sensors.db",
   logLevel: "info",
   logPath: "./logs/app.log",
+  logSizeLimit: 100, // размер в МБ
   telegramToken: "",
   telegramChatId: "",
   enableNotifications: true,
+  sendThresholdAlerts: true,
+  sendPeriodicReports: false,
+  reportFrequency: "daily", // daily, weekly, monthly
+  allowCommandRequests: true,
   pollingInterval: 5000,
 };
 
@@ -158,6 +243,58 @@ app.get('/api/settings', (req, res) => {
 app.post('/api/settings', (req, res) => {
   mockSettings = { ...mockSettings, ...req.body };
   res.json({ success: true });
+});
+
+// Создание моковых датчиков для тестирования
+app.get('/api/generate-mock-sensors', (req, res) => {
+  const mockSensors = [
+    { name: "Датчик 1", temp_min: 18, temp_max: 26, humidity_min: 30, humidity_max: 60 },
+    { name: "Датчик 2", temp_min: 19, temp_max: 25, humidity_min: 35, humidity_max: 55 },
+    { name: "Датчик 3", temp_min: 20, temp_max: 28, humidity_min: 40, humidity_max: 65 },
+    { name: "Датчик серверной", temp_min: 16, temp_max: 22, humidity_min: 30, humidity_max: 50 },
+    { name: "Датчик склада", temp_min: 15, temp_max: 24, humidity_min: 35, humidity_max: 70 },
+    { name: "Датчик офиса", temp_min: 20, temp_max: 25, humidity_min: 40, humidity_max: 60 },
+    { name: "Датчик лаборатории", temp_min: 21, temp_max: 23, humidity_min: 45, humidity_max: 55 },
+    { name: "Датчик коридора", temp_min: 18, temp_max: 27, humidity_min: 30, humidity_max: 65 },
+    { name: "Датчик производства", temp_min: 16, temp_max: 30, humidity_min: 25, humidity_max: 70 },
+    { name: "Датчик столовой", temp_min: 19, temp_max: 26, humidity_min: 35, humidity_max: 60 }
+  ];
+
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+    db.run('DELETE FROM sensors', (err) => {
+      if (err) {
+        db.run('ROLLBACK');
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      const stmt = db.prepare(
+        'INSERT INTO sensors (name, temp_min, temp_max, humidity_min, humidity_max) VALUES (?, ?, ?, ?, ?)'
+      );
+
+      mockSensors.forEach((sensor) => {
+        stmt.run([
+          sensor.name,
+          sensor.temp_min,
+          sensor.temp_max,
+          sensor.humidity_min,
+          sensor.humidity_max
+        ]);
+      });
+
+      stmt.finalize();
+      
+      db.run('COMMIT', (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          res.status(500).json({ error: err.message });
+          return;
+        }
+        res.json({ success: true, sensors: mockSensors });
+      });
+    });
+  });
 });
 
 const PORT = process.env.PORT || 3001;
