@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { SensorPanel } from "./SensorPanel";
 import { SensorChart } from "./SensorChart";
+import { SensorVisualization } from "./SensorVisualization";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -116,6 +117,7 @@ export function Dashboard({ useMockData = true }: DashboardProps) {
         <TabsList>
           <TabsTrigger value="grid">Сетка датчиков</TabsTrigger>
           <TabsTrigger value="detail">Детальный вид</TabsTrigger>
+          <TabsTrigger value="visualization">Визуализация</TabsTrigger>
         </TabsList>
         
         <TabsContent value="grid" className="space-y-4">
@@ -191,6 +193,14 @@ export function Dashboard({ useMockData = true }: DashboardProps) {
               />
             </div>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="visualization">
+          <SensorVisualization 
+            sensorsData={sensorsData}
+            selectedSensorId={selectedSensorId}
+            setSelectedSensorId={setSelectedSensorId}
+          />
         </TabsContent>
       </Tabs>
     </div>
