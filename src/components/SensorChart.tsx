@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, ReferenceLine, Brush, ZoomOutMap
+  ResponsiveContainer, ReferenceLine, Brush
 } from "recharts";
 import { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
