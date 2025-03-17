@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Thermometer, Droplets } from "lucide-react";
+import { Thermometer, Droplets, AlertTriangle } from "lucide-react";
 
 interface SensorVisualizationProps {
   sensorsData: Array<{
@@ -30,9 +30,11 @@ export function SensorVisualization({
     imagePath: string;
     sensorPlacements: { sensorId: number; x: number; y: number }[];
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [maps, setMaps] = useState<Array<{id?: number; name: string}>>([]);
 
-  // Default map with uploaded background image
-  const defaultMap = {
+  // Default map with circular sensor placement as fallback
+  const generateDefaultMap = () => ({
     name: "Основная схема",
     imagePath: "/lovable-uploads/22a1785b-bb83-4edf-9674-e94b3b4bb1bf.png",
     sensorPlacements: sensorsData.map((sensor, index) => {
@@ -48,31 +50,54 @@ export function SensorVisualization({
         y: centerY + radius * Math.sin(angle),
       };
     }),
-  };
+  });
 
   useEffect(() => {
-    // Try to load maps from API (this would be connected to the actual API in a real app)
+    // Load visualizations from the API
     const fetchMaps = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch("http://localhost:3001/api/visualizations");
         if (response.ok) {
           const data = await response.json();
           if (data && data.length > 0) {
+            setMaps(data.map((map: any) => ({ id: map.id, name: map.name })));
             setSelectedMap(data[0]);
           } else {
-            setSelectedMap(defaultMap);
+            // No maps found, use default
+            setSelectedMap(generateDefaultMap());
           }
         } else {
           throw new Error("Failed to fetch maps");
         }
       } catch (error) {
         console.error("Error fetching visualization maps:", error);
-        setSelectedMap(defaultMap);
+        setSelectedMap(generateDefaultMap());
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchMaps();
-  }, []);
+  }, [sensorsData.length]);
+
+  // Load a specific map
+  const loadMap = async (mapId: number) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`http://localhost:3001/api/visualizations/${mapId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedMap(data);
+      } else {
+        throw new Error("Failed to fetch map");
+      }
+    } catch (error) {
+      console.error("Error fetching map:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Determine if a sensor is in alert state
   const isSensorInAlert = (sensor: typeof sensorsData[0]) => {
@@ -84,12 +109,36 @@ export function SensorVisualization({
     );
   };
 
-  if (!selectedMap) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-64">Загрузка схемы...</div>;
+  }
+
+  if (!selectedMap) {
+    return <div className="flex justify-center items-center h-64">Схема не найдена</div>;
   }
 
   return (
     <div className="relative w-full h-[70vh] overflow-hidden rounded-lg">
+      {/* Map Selection */}
+      {maps.length > 1 && (
+        <div className="absolute top-2 right-2 z-20">
+          <select
+            className="bg-white/80 backdrop-blur-sm border border-gray-300 rounded-md p-1 text-sm"
+            value={selectedMap.id || ""}
+            onChange={(e) => {
+              const mapId = Number(e.target.value);
+              if (mapId) loadMap(mapId);
+            }}
+          >
+            {maps.map((map) => (
+              <option key={map.id} value={map.id}>
+                {map.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      
       {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center"
@@ -106,7 +155,7 @@ export function SensorVisualization({
         </h2>
 
         {/* Sensor Indicators */}
-        {selectedMap.sensorPlacements.map((placement) => {
+        {selectedMap.sensorPlacements?.map((placement) => {
           const sensor = sensorsData.find((s) => s.id === placement.sensorId);
           if (!sensor) return null;
 
@@ -170,6 +219,18 @@ export function SensorVisualization({
             </div>
           );
         })}
+
+        {/* Show warning if no sensors are placed on the map */}
+        {selectedMap.sensorPlacements?.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-black/50 text-white p-4 rounded-lg backdrop-blur-sm">
+              <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2 text-yellow-400" />
+                <span>На данной схеме нет размещенных датчиков</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,12 +1,12 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { VisualizationMap } from "./types";
-import { Trash, Plus, Save } from "lucide-react";
+import { VisualizationMap, SensorPlacement } from "./types";
+import { Trash, Plus, Save, Image } from "lucide-react";
 
 export function Visualization() {
   const { toast } = useToast();
@@ -15,14 +15,17 @@ export function Visualization() {
   const [mapName, setMapName] = useState("");
   const [sensors, setSensors] = useState<{ id: number; name: string }[]>([]);
   const [selectedSensor, setSelectedSensor] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageUrl, setImageUrl] = useState("");
 
-  // Загрузка датчиков
+  // Load sensors
   const loadSensors = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch('http://localhost:3001/api/sensors');
       if (response.ok) {
         const data = await response.json();
@@ -30,6 +33,8 @@ export function Visualization() {
           id: sensor.id,
           name: sensor.name
         })));
+      } else {
+        throw new Error('Failed to load sensors');
       }
     } catch (error) {
       console.error("Failed to load sensors:", error);
@@ -38,16 +43,28 @@ export function Visualization() {
         description: "Не удалось загрузить датчики",
         variant: "destructive",
       });
+      // Set mock data for testing
+      const mockSensors = Array.from({ length: 5 }, (_, i) => ({
+        id: i + 1,
+        name: `Тестовый датчик ${i + 1}`
+      }));
+      setSensors(mockSensors);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Загрузка схем визуализации
+  // Load visualization maps
   const loadMaps = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch('http://localhost:3001/api/visualizations');
       if (response.ok) {
         const data = await response.json();
         setMaps(data);
+        console.log("Loaded maps:", data);
+      } else {
+        throw new Error('Failed to load visualization maps');
       }
     } catch (error) {
       console.error("Failed to load visualization maps:", error);
@@ -56,10 +73,20 @@ export function Visualization() {
         description: "Не удалось загрузить схемы визуализации",
         variant: "destructive",
       });
+      // Set empty maps array
+      setMaps([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Выбор файла изображения
+  // Load data on component mount
+  useEffect(() => {
+    loadSensors();
+    loadMaps();
+  }, []);
+
+  // Handle file selection
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -69,17 +96,17 @@ export function Visualization() {
       if (e.target?.result) {
         setImageUrl(e.target.result as string);
         
-        // Создаем новый объект Image для получения размеров
+        // Create a new Image object to get dimensions
         const img = new Image();
         img.onload = () => {
           imageRef.current = img;
           
-          // Обновляем размеры canvas под изображение
+          // Update canvas dimensions to match the image
           if (canvasRef.current) {
             canvasRef.current.width = img.width;
             canvasRef.current.height = img.height;
             
-            // Рисуем изображение на canvas
+            // Draw the image on canvas
             const ctx = canvasRef.current.getContext('2d');
             if (ctx) {
               ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -93,7 +120,7 @@ export function Visualization() {
     reader.readAsDataURL(file);
   };
 
-  // Обработка клика по canvas для размещения датчика
+  // Handle canvas click to place a sensor
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!selectedSensor || !canvasRef.current || !currentMap) return;
     
@@ -101,14 +128,14 @@ export function Visualization() {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    // Добавляем датчик на схему
-    const newPlacement = {
+    // Add sensor to the map
+    const newPlacement: SensorPlacement = {
       sensorId: selectedSensor,
       x,
       y
     };
     
-    // Обновляем текущую схему
+    // Update current map
     const updatedMap = {
       ...currentMap,
       sensorPlacements: [...(currentMap.sensorPlacements || []), newPlacement]
@@ -123,25 +150,25 @@ export function Visualization() {
     });
   };
 
-  // Перерисовка canvas с учетом размещенных датчиков
+  // Redraw canvas with placed sensors
   const redrawCanvas = (map: VisualizationMap) => {
     if (!canvasRef.current || !imageRef.current) return;
     
     const ctx = canvasRef.current.getContext('2d');
     if (!ctx) return;
     
-    // Очищаем canvas и рисуем изображение
+    // Clear canvas and draw image
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     ctx.drawImage(imageRef.current, 0, 0);
     
-    // Рисуем маркеры датчиков
+    // Draw sensor markers
     map.sensorPlacements?.forEach(placement => {
       ctx.beginPath();
       ctx.arc(placement.x, placement.y, 10, 0, 2 * Math.PI);
       ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
       ctx.fill();
       
-      // Рисуем ID датчика
+      // Draw sensor ID
       ctx.fillStyle = 'white';
       ctx.font = '10px Arial';
       ctx.textAlign = 'center';
@@ -150,7 +177,7 @@ export function Visualization() {
     });
   };
 
-  // Создание новой схемы
+  // Create a new map
   const createNewMap = () => {
     if (!mapName.trim()) {
       toast({
@@ -167,7 +194,7 @@ export function Visualization() {
       sensorPlacements: []
     });
     
-    // Сбрасываем canvas и изображение
+    // Reset canvas and image
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       if (ctx) {
@@ -178,13 +205,13 @@ export function Visualization() {
     setImageUrl("");
     imageRef.current = null;
     
-    // Автоматически открываем диалог выбора файла
+    // Automatically open file dialog
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // Сохранение схемы
+  // Save the current map
   const saveMap = async () => {
     if (!currentMap) return;
     
@@ -207,29 +234,49 @@ export function Visualization() {
     }
     
     try {
+      setIsSaving(true);
+      
+      const mapData = {
+        name: currentMap.name,
+        imagePath: imageUrl,
+        sensorPlacements: currentMap.sensorPlacements || []
+      };
+      
+      console.log("Saving map data:", mapData);
+      
       const response = await fetch('http://localhost:3001/api/visualizations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: currentMap.name,
-          imagePath: imageUrl,
-          sensorPlacements: currentMap.sensorPlacements
-        }),
+        body: JSON.stringify(mapData),
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          toast({
-            title: "Успех",
-            description: "Схема визуализации успешно сохранена",
-          });
-          
-          // Обновляем список схем
-          loadMaps();
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        toast({
+          title: "Успех",
+          description: "Схема визуализации успешно сохранена",
+        });
+        
+        // Update the maps list
+        loadMaps();
+        
+        // Reset form
+        setMapName("");
+        setCurrentMap(null);
+        setImageUrl("");
+        imageRef.current = null;
+        
+        if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          }
         }
+      } else {
+        throw new Error(result.error || 'Не удалось сохранить схему');
       }
     } catch (error) {
       console.error("Failed to save visualization map:", error);
@@ -238,14 +285,79 @@ export function Visualization() {
         description: "Не удалось сохранить схему визуализации",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Загрузка датчиков при монтировании компонента
-  useState(() => {
-    loadSensors();
-    loadMaps();
-  });
+  // Load a map for editing
+  const loadMapForEdit = (map: VisualizationMap) => {
+    setMapName(map.name);
+    setCurrentMap(map);
+    setImageUrl(map.imagePath);
+    
+    // Load the image
+    const img = new Image();
+    img.onload = () => {
+      imageRef.current = img;
+      
+      if (canvasRef.current) {
+        canvasRef.current.width = img.width;
+        canvasRef.current.height = img.height;
+        
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          ctx.drawImage(img, 0, 0);
+          
+          // Draw sensor placements
+          map.sensorPlacements?.forEach(placement => {
+            ctx.beginPath();
+            ctx.arc(placement.x, placement.y, 10, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+            ctx.fill();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(placement.sensorId.toString(), placement.x, placement.y);
+          });
+        }
+      }
+    };
+    img.src = map.imagePath;
+  };
+
+  // Delete a map
+  const deleteMap = async (mapId: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/visualizations/${mapId}`, {
+        method: 'DELETE',
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        toast({
+          title: "Успех",
+          description: "Схема визуализации удалена",
+        });
+        
+        // Update the maps list
+        loadMaps();
+      } else {
+        throw new Error(result.error || 'Не удалось удалить схему');
+      }
+    } catch (error) {
+      console.error("Failed to delete visualization map:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить схему визуализации",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card>
@@ -287,6 +399,7 @@ export function Visualization() {
                     className="h-40 w-full border-dashed"
                     onClick={() => fileInputRef.current?.click()}
                   >
+                    <Image className="w-6 h-6 mr-2" />
                     Загрузить изображение схемы
                   </Button>
                 ) : (
@@ -334,7 +447,7 @@ export function Visualization() {
                             onClick={() => {
                               if (!currentMap) return;
                               
-                              // Удаляем датчик из размещений
+                              // Remove sensor from placements
                               const updatedPlacements = currentMap.sensorPlacements.filter(
                                 (_, i) => i !== index
                               );
@@ -361,16 +474,22 @@ export function Visualization() {
                 </div>
               </div>
 
-              <Button className="w-full" onClick={saveMap} disabled={!currentMap || !imageUrl}>
+              <Button 
+                className="w-full" 
+                onClick={saveMap} 
+                disabled={!currentMap || !imageUrl || isSaving}
+              >
                 <Save className="w-4 h-4 mr-2" />
-                Сохранить схему
+                {isSaving ? "Сохранение..." : "Сохранить схему"}
               </Button>
             </div>
           </div>
 
           <div className="mt-4">
             <h3 className="text-lg font-medium mb-2">Сохраненные схемы</h3>
-            {maps.length > 0 ? (
+            {isLoading ? (
+              <p>Загрузка схем...</p>
+            ) : maps.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {maps.map((map) => (
                   <Card key={map.id} className="overflow-hidden">
@@ -380,11 +499,36 @@ export function Visualization() {
                         alt={map.name}
                         className="w-full h-full object-cover"
                       />
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          className="w-8 h-8 bg-white bg-opacity-80"
+                          onClick={() => loadMapForEdit(map)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                          </svg>
+                        </Button>
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          className="w-8 h-8 bg-white bg-opacity-80"
+                          onClick={() => {
+                            if (window.confirm(`Удалить схему "${map.name}"?`)) {
+                              deleteMap(map.id!);
+                            }
+                          }}
+                        >
+                          <Trash className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                     <CardContent className="p-3">
                       <h4 className="font-medium">{map.name}</h4>
                       <p className="text-sm text-gray-500">
-                        {map.sensorPlacements.length} датчиков
+                        {map.sensorPlacements?.length || 0} датчиков
                       </p>
                     </CardContent>
                   </Card>
