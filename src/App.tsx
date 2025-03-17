@@ -9,7 +9,15 @@ import NotFound from "./pages/NotFound";
 import { Settings } from "./components/Settings";
 import { ThemeProvider } from "./lib/theme-provider";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <ThemeProvider defaultTheme="light" storageKey="sensors-theme">
