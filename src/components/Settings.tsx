@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,8 @@ import { SettingsFormData, SensorConfig } from "./settings/types";
 import { Form } from "@/components/ui/form";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Visualization } from "./settings/Visualization";
-import { Database } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { SettingsHeader } from "./settings/SettingsHeader";
+import { SettingsActions } from "./settings/SettingsActions";
 
 interface SettingsProps {
   useMockData?: boolean;
@@ -213,30 +214,6 @@ export function Settings({ useMockData = true }: SettingsProps) {
     }
   };
 
-  const clearDatabase = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/database/clear', {
-        method: 'POST',
-      });
-      
-      if (response.ok) {
-        toast({
-          title: "База данных очищена",
-          description: "История измерений успешно удалена из базы данных",
-        });
-      } else {
-        throw new Error('Failed to clear database');
-      }
-    } catch (error) {
-      console.error('Error clearing database:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось очистить базу данных",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
@@ -249,35 +226,9 @@ export function Settings({ useMockData = true }: SettingsProps) {
 
   return (
     <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Настройки системы</h1>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={generateMockSensors}>
-            Создать моковые датчики
-          </Button>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Database className="h-4 w-4 mr-2" />
-                Очистить базу данных
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Очистить базу данных?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Это действие удалит всю историю измерений. Данное действие нельзя отменить.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                <AlertDialogAction onClick={clearDatabase}>Очистить</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+      <SettingsHeader 
+        generateMockSensors={generateMockSensors} 
+      />
       
       <Tabs defaultValue="sensors">
         <TabsList className="mb-4">
