@@ -25,21 +25,54 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
   const [isScanning, setIsScanning] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [osType, setOsType] = useState<'windows' | 'linux' | 'other'>('windows');
   const { toast } = useToast();
 
   // Watch the autostart field to get its current value
   const autoStartEnabled = form.watch("modbusAutoStart");
 
+  // Detect operating system
+  useEffect(() => {
+    const detectOS = async () => {
+      if (useMockData) {
+        // Default to Windows for mock data
+        setOsType('windows');
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:3001/api/system/os');
+        if (response.ok) {
+          const { os } = await response.json();
+          setOsType(os.toLowerCase().includes('win') ? 'windows' : 
+                   os.toLowerCase().includes('linux') ? 'linux' : 'other');
+        }
+      } catch (error) {
+        console.error('Error detecting OS:', error);
+        // If we can't detect, assume Windows as it's most common
+        setOsType('windows');
+      }
+    };
+
+    detectOS();
+  }, [useMockData]);
+
   const scanPorts = async () => {
     if (useMockData) {
       setIsScanning(true);
-      // Simulate port scanning in mock mode
+      // Simulate port scanning in mock mode based on detected OS
       setTimeout(() => {
-        setAvailablePorts(['COM1', 'COM2', 'COM3', 'COM4']);
+        if (osType === 'windows') {
+          setAvailablePorts(['COM1', 'COM2', 'COM3', 'COM4']);
+        } else if (osType === 'linux') {
+          setAvailablePorts(['/dev/ttyMCX1', '/dev/ttyMCX2', '/dev/ttyMCX3', '/dev/ttyACM0', '/dev/ttyUSB0']);
+        } else {
+          setAvailablePorts(['/dev/tty.usbserial', '/dev/tty.usbmodem1', '/dev/tty.usbmodem2']);
+        }
         setIsScanning(false);
         toast({
           title: "Сканирование завершено",
-          description: "Найдено 4 доступных порта",
+          description: `Найдено ${osType === 'windows' ? '4' : '5'} доступных портов`,
         });
       }, 1000);
       return;
@@ -62,7 +95,7 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
       console.error('Error scanning ports:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось просканировать порты",
+        description: "Не удалось просканировать порты. Проверьте права доступа.",
         variant: "destructive",
       });
     } finally {
@@ -240,22 +273,29 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
                 name="modbusPort"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>COM порт</FormLabel>
+                    <FormLabel>COM порт {osType !== 'windows' && '(или /dev/tty*)'}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Выберите COM порт" />
+                          <SelectValue placeholder={`Выберите ${osType === 'windows' ? 'COM порт' : 'порт'}`} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {availablePorts.map((port) => (
-                          <SelectItem key={port} value={port}>{port}</SelectItem>
-                        ))}
+                        {availablePorts.length > 0 ? (
+                          availablePorts.map((port) => (
+                            <SelectItem key={port} value={port}>{port}</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="" disabled>Нет доступных портов</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
+                    <FormDescription>
+                      {osType === 'linux' && 'На Linux используйте порты типа /dev/ttyMCX* или /dev/ttyUSB*'}
+                    </FormDescription>
                   </FormItem>
                 )}
               />

@@ -1,9 +1,9 @@
-
 import express from 'express';
 import sqlite3 from 'sqlite3';
 import cors from 'cors';
 import path from 'path';
 import { VisualizationMap } from '@/components/settings/types';
+import os from 'os';
 
 const app = express();
 app.use(cors());
@@ -59,6 +59,30 @@ const db = new sqlite3.Database(path.join(__dirname, 'sensors.db'), (err) => {
       )
     `);
   }
+});
+
+// Get system info
+app.get('/api/system/os', (req, res) => {
+  res.json({ os: os.platform(), type: os.type(), release: os.release() });
+});
+
+// Mock port scanning for development - returns appropriate ports based on OS
+app.get('/api/modbus/scan', (req, res) => {
+  const platform = os.platform();
+  let ports = [];
+  
+  // Generate mock ports based on detected OS
+  if (platform === 'win32') {
+    ports = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5'];
+  } else if (platform === 'linux') {
+    ports = ['/dev/ttyMCX1', '/dev/ttyMCX2', '/dev/ttyMCX3', '/dev/ttyACM0', '/dev/ttyUSB0'];
+  } else if (platform === 'darwin') {
+    ports = ['/dev/tty.usbserial', '/dev/tty.usbmodem1', '/dev/tty.usbmodem2'];
+  } else {
+    ports = ['PORT1', 'PORT2', 'PORT3']; // Generic fallback
+  }
+  
+  res.json({ ports, platform });
 });
 
 // API endpoints
@@ -270,7 +294,7 @@ app.get('/api/generate-mock-sensors', (req, res) => {
     { name: "Датчик офиса", temp_min: 20, temp_max: 25, humidity_min: 40, humidity_max: 60 },
     { name: "Датчик лаборатории", temp_min: 21, temp_max: 23, humidity_min: 45, humidity_max: 55 },
     { name: "Датчик коридора", temp_min: 18, temp_max: 27, humidity_min: 30, humidity_max: 65 },
-    { name: "Датчик производства", temp_min: 16, temp_max: 30, humidity_min: 25, humidity_max: 70 },
+    { name: "Датч��к производства", temp_min: 16, temp_max: 30, humidity_min: 25, humidity_max: 70 },
     { name: "Датчик столовой", temp_min: 19, temp_max: 26, humidity_min: 35, humidity_max: 60 }
   ];
 
