@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -264,13 +263,7 @@ export function Settings({ useMockData = true }: SettingsProps) {
               <Visualization />
             </TabsContent>
 
-            <Button 
-              type="submit" 
-              className="w-full md:w-auto"
-              disabled={isSaving}
-            >
-              {isSaving ? "Сохранение..." : "Сохранить настройки"}
-            </Button>
+            <SettingsActions isSaving={isSaving} />
           </form>
         </Form>
       </Tabs>

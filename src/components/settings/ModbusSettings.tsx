@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
@@ -289,7 +288,7 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
                             <SelectItem key={port} value={port}>{port}</SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="" disabled>Нет доступных портов</SelectItem>
+                          <SelectItem key="no-ports" value="no-ports-available">Нет доступных портов</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
