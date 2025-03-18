@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
@@ -11,7 +12,7 @@ import { ModbusVisualizer } from "../ModbusVisualizer";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Power, PlugZap } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 
 interface ModbusSettingsProps {
   form: UseFormReturn<SettingsFormData>;
@@ -25,8 +26,7 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [osType, setOsType] = useState<'windows' | 'linux' | 'other'>('windows');
-  const { toast } = useToast();
-
+  
   // Watch the autostart field to get its current value
   const autoStartEnabled = form.watch("modbusAutoStart");
 
@@ -80,21 +80,39 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
     try {
       setIsScanning(true);
       const response = await fetch('http://localhost:3001/api/modbus/scan');
+      
       if (response.ok) {
         const data = await response.json();
-        setAvailablePorts(data.ports);
-        toast({
-          title: "Сканирование завершено",
-          description: `Найдено ${data.ports.length} доступных портов`,
-        });
+        
+        if (data.success) {
+          setAvailablePorts(data.ports);
+          toast({
+            title: "Сканирование завершено",
+            description: `Найдено ${data.ports.length} доступных портов`,
+          });
+        } else {
+          // Handle API success but operation failure
+          setAvailablePorts([]);
+          toast({
+            title: "Ошибка",
+            description: data.message || "Не удалось просканировать порты",
+            variant: "destructive",
+          });
+        }
       } else {
-        throw new Error('Failed to scan ports');
+        // Handle non-200 responses
+        const errorData = await response.json().catch(() => ({
+          message: "Не удалось просканировать порты. Проверьте права доступа."
+        }));
+        
+        setAvailablePorts([]);
+        throw new Error(errorData.message);
       }
     } catch (error) {
       console.error('Error scanning ports:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось просканировать порты. Проверьте права доступа.",
+        description: error instanceof Error ? error.message : "Не удалось просканировать порты. Проверьте права доступа.",
         variant: "destructive",
       });
     } finally {
@@ -143,21 +161,23 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
         }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
         setComPortStatus('open');
         toast({
           title: "Подключено",
-          description: `Порт ${portName} успешно открыт`,
+          description: data.message || `Порт ${portName} успешно открыт`,
         });
       } else {
-        throw new Error('Failed to connect to port');
+        throw new Error(data.message || 'Не удалось подключиться к порту');
       }
     } catch (error) {
       console.error('Error connecting to port:', error);
       setComPortStatus('error');
       toast({
         title: "Ошибка",
-        description: "Не удалось подключиться к порту",
+        description: error instanceof Error ? error.message : "Не удалось подключиться к порту",
         variant: "destructive",
       });
     } finally {
@@ -186,20 +206,22 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
         method: 'POST',
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
         setComPortStatus('closed');
         toast({
           title: "Отключено",
-          description: "Порт успешно закрыт",
+          description: data.message || "Порт успешно закрыт",
         });
       } else {
-        throw new Error('Failed to disconnect from port');
+        throw new Error(data.message || 'Не удалось отключиться от порта');
       }
     } catch (error) {
       console.error('Error disconnecting from port:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось закрыть порт",
+        description: error instanceof Error ? error.message : "Не удалось закрыть порт",
         variant: "destructive",
       });
     } finally {
@@ -288,7 +310,7 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
                             <SelectItem key={port} value={port}>{port}</SelectItem>
                           ))
                         ) : (
-                          <SelectItem key="no-ports" value="no-ports-available">Нет доступных портов</SelectItem>
+                          <SelectItem value="no-ports-available" disabled>Нет доступных портов</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

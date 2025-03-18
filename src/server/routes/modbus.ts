@@ -21,6 +21,9 @@ router.get('/scan', (req, res) => {
       ports = ['PORT1', 'PORT2', 'PORT3']; // Generic fallback
     }
     
+    // In production environments with real hardware, this would use serialport.list()
+    // to get actual available ports
+    
     res.json({ 
       ports, 
       platform,
@@ -30,8 +33,9 @@ router.get('/scan', (req, res) => {
     console.error('Error scanning ports:', error);
     res.status(500).json({ 
       success: false, 
+      ports: [], // Return empty array so UI can handle it
       error: 'Failed to scan ports', 
-      message: 'There was an error scanning for available ports'
+      message: 'Не удалось просканировать порты. Проверьте права доступа.'
     });
   }
 });
@@ -41,19 +45,27 @@ router.post('/connect', (req, res) => {
   try {
     const { port, baudRate, dataBits, parity, stopBits } = req.body;
     
+    if (!port) {
+      return res.status(400).json({
+        success: false,
+        message: 'Не указан COM-порт для подключения',
+        error: 'Port is required'
+      });
+    }
+    
     // In a real app, we'd use serialport package to open the connection
     // For mock purposes, just return success
     
     res.json({
       success: true,
-      message: `Successfully connected to ${port}`,
+      message: `Успешно подключено к ${port}`,
       isOpen: true
     });
   } catch (error) {
     console.error('Error connecting to port:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to connect to port',
+      message: 'Не удалось подключиться к порту',
       error: String(error)
     });
   }
@@ -67,14 +79,14 @@ router.post('/disconnect', (req, res) => {
     
     res.json({
       success: true,
-      message: 'Port successfully closed',
+      message: 'Порт успешно закрыт',
       isOpen: false
     });
   } catch (error) {
     console.error('Error disconnecting from port:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to disconnect from port',
+      message: 'Не удалось отключиться от порта',
       error: String(error)
     });
   }
@@ -94,7 +106,7 @@ router.get('/status', (req, res) => {
     console.error('Error checking port status:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to check port status',
+      message: 'Не удалось проверить статус порта',
       error: String(error)
     });
   }

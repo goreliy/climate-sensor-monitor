@@ -30,13 +30,31 @@ let mockSettings = {
 
 // Get settings
 router.get('/', (req, res) => {
-  res.json(mockSettings);
+  try {
+    res.json(mockSettings);
+  } catch (error) {
+    console.error('Error getting settings:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: String(error),
+      message: 'Не удалось получить настройки' 
+    });
+  }
 });
 
 // Save settings
 router.post('/', (req, res) => {
-  mockSettings = { ...mockSettings, ...req.body };
-  res.json({ success: true });
+  try {
+    mockSettings = { ...mockSettings, ...req.body };
+    res.json({ success: true, message: 'Настройки сохранены' });
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: String(error),
+      message: 'Не удалось сохранить настройки' 
+    });
+  }
 });
 
 // Save settings to JSON file (for testing)
@@ -44,10 +62,17 @@ router.post('/save-json', (req, res) => {
   try {
     // In a real app, we'd save to a proper location
     // For mock purposes, we'll just return success
-    res.json({ success: true });
+    res.json({ 
+      success: true, 
+      message: 'Настройки сохранены в JSON файл' 
+    });
   } catch (error) {
     console.error('Error saving settings to JSON:', error);
-    res.status(500).json({ success: false, error: String(error) });
+    res.status(500).json({ 
+      success: false, 
+      error: String(error),
+      message: 'Не удалось сохранить настройки в JSON файл' 
+    });
   }
 });
 
