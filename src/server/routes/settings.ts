@@ -6,7 +6,8 @@ import path from 'path';
 const router = Router();
 
 // Define path for settings storage
-const settingsPath = path.join(__dirname, '..', 'settings.json');
+const settingsPath = path.join(__dirname, '..', 'config', 'settings.json');
+const visualizationSchemaPath = path.join(__dirname, '..', 'config', 'visualization.json');
 
 // Load settings from file or use defaults
 const loadSettings = () => {
@@ -65,6 +66,12 @@ router.post('/', (req, res) => {
   try {
     currentSettings = { ...currentSettings, ...req.body };
     
+    // Ensure directory exists
+    const configDir = path.join(__dirname, '..', 'config');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
     // Save to file
     fs.writeFileSync(settingsPath, JSON.stringify(currentSettings, null, 2), 'utf8');
     
@@ -107,6 +114,57 @@ router.post('/save-json', (req, res) => {
       success: false, 
       error: String(error),
       message: 'Не удалось сохранить настройки в JSON файл' 
+    });
+  }
+});
+
+// Save visualization schema
+router.post('/visualization', (req, res) => {
+  try {
+    const schema = req.body;
+
+    // Create directory if it doesn't exist
+    const configDir = path.join(__dirname, '..', 'config');
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    
+    // Save the visualization schema
+    fs.writeFileSync(visualizationSchemaPath, JSON.stringify(schema, null, 2), 'utf8');
+    
+    res.json({
+      success: true,
+      message: 'Схема визуализации успешно сохранена'
+    });
+  } catch (error) {
+    console.error('Error saving visualization schema:', error);
+    res.status(500).json({
+      success: false,
+      error: String(error),
+      message: 'Не удалось сохранить схему визуализации'
+    });
+  }
+});
+
+// Get visualization schema
+router.get('/visualization', (req, res) => {
+  try {
+    if (fs.existsSync(visualizationSchemaPath)) {
+      const data = fs.readFileSync(visualizationSchemaPath, 'utf8');
+      res.json(JSON.parse(data));
+    } else {
+      // Return empty schema if no file exists
+      res.json({
+        elements: [],
+        connections: []
+      });
+    }
+  } catch (error) {
+    console.error('Error loading visualization schema:', error);
+    res.status(500).json({
+      success: false,
+      error: String(error),
+      message: 'Не удалось загрузить схему визуализации'
     });
   }
 });

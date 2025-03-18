@@ -1,38 +1,173 @@
-
 import { Router } from 'express';
 import os from 'os';
-// Import SerialPort and ModbusRTU
-import SerialPort from 'serialport';
-import ModbusRTU from 'modbus-serial';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
-let client: ModbusRTU | null = null;
+
+// Mock implementation for Modbus client
+class MockModbusClient {
+  private connected = false;
+  private slaveId = 1;
+  private port = '';
+  private mockData = [0, 0, 42, 128, 256, 512, 1024, 2048];
+  
+  setID(id: number) {
+    this.slaveId = id;
+    return this;
+  }
+  
+  async connectRTU(port: string, options: any, callback?: (err?: Error) => void) {
+    try {
+      console.log(`[MOCK] Connecting to ${port} with options:`, options);
+      // Simulate some delay for connection
+      await new Promise(resolve => setTimeout(resolve, 500));
+      this.connected = true;
+      this.port = port;
+      
+      if (callback) callback();
+      return true;
+    } catch (error) {
+      if (callback) callback(error as Error);
+      throw error;
+    }
+  }
+  
+  async close() {
+    console.log('[MOCK] Disconnecting from port');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    this.connected = false;
+    this.port = '';
+    return true;
+  }
+  
+  isConnected() {
+    return this.connected;
+  }
+  
+  getPort() {
+    return this.port;
+  }
+  
+  async readHoldingRegisters(address: number, length: number) {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+    
+    console.log(`[MOCK] Reading ${length} holding registers from address ${address} with slave ID ${this.slaveId}`);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+    
+    // Generate mock data based on address and slave ID
+    const data = Array(length).fill(0).map((_, i) => {
+      const value = this.mockData[(address + i) % this.mockData.length];
+      return value * this.slaveId; // Multiply by slave ID to make it vary by device
+    });
+    
+    return { data };
+  }
+  
+  async readInputRegisters(address: number, length: number) {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+    
+    console.log(`[MOCK] Reading ${length} input registers from address ${address} with slave ID ${this.slaveId}`);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+    
+    // Generate different mock data for input registers
+    const data = Array(length).fill(0).map((_, i) => {
+      const value = this.mockData[(address + i + 3) % this.mockData.length];
+      return value * this.slaveId;
+    });
+    
+    return { data };
+  }
+  
+  async readCoils(address: number, length: number) {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+    
+    console.log(`[MOCK] Reading ${length} coils from address ${address} with slave ID ${this.slaveId}`);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+    
+    // Generate boolean values for coils
+    const data = Array(length).fill(false).map((_, i) => {
+      return ((address + i) % 3 === 0); // Simple pattern for mock boolean values
+    });
+    
+    return { data };
+  }
+  
+  async readDiscreteInputs(address: number, length: number) {
+    if (!this.connected) {
+      throw new Error('Not connected');
+    }
+    
+    console.log(`[MOCK] Reading ${length} discrete inputs from address ${address} with slave ID ${this.slaveId}`);
+    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+    
+    // Generate boolean values for discrete inputs
+    const data = Array(length).fill(false).map((_, i) => {
+      return ((address + i) % 2 === 0); // Different pattern for discrete inputs
+    });
+    
+    return { data };
+  }
+}
+
+// This will be the fake data for ports
+const mockPortsData = {
+  'windows': ['COM1', 'COM2', 'COM3', 'COM4', 'COM5'],
+  'linux': ['/dev/ttyS0', '/dev/ttyS1', '/dev/ttyUSB0', '/dev/ttyUSB1', '/dev/ttyACM0'],
+  'darwin': ['/dev/tty.usbserial', '/dev/tty.usbmodem1', '/dev/tty.usbmodem2']
+};
+
+let client: MockModbusClient | null = null;
 let isConnected = false;
 let currentPort: string | null = null;
+
+// Store Modbus logs
+const modbusLogsDir = path.join(__dirname, '..', 'logs');
+if (!fs.existsSync(modbusLogsDir)) {
+  fs.mkdirSync(modbusLogsDir, { recursive: true });
+}
+const modbusLogsPath = path.join(modbusLogsDir, 'modbus_logs.json');
+
+// Store mock logs
+const modbusLogs: any[] = [];
+let logId = 0;
+
+// Generate a random hex string of a given length
+const randomHex = (length: number) => {
+  return Array(length).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
+};
 
 // Scan for available ports
 router.get('/scan', async (req, res) => {
   try {
-    // In a real environment, use serialport.list()
-    const ports = await SerialPort.list();
+    console.log('Scanning for available serial ports (MOCK)');
     
-    if (!ports || ports.length === 0) {
-      console.log('No COM ports detected in system');
-      return res.json({ 
-        success: true, 
-        ports: [], 
-        platform: os.platform(),
-        message: 'Порты не обнаружены. Проверьте подключение устройств.'
-      });
+    // Determine platform
+    const platform = os.platform();
+    let ports: string[] = [];
+    
+    if (platform.startsWith('win')) {
+      ports = mockPortsData.windows;
+    } else if (platform === 'linux') {
+      ports = mockPortsData.linux;
+    } else if (platform === 'darwin') {
+      ports = mockPortsData.darwin;
+    } else {
+      ports = [];
     }
-
-    const portPaths = ports.map(port => port.path);
-    console.log('Detected ports:', portPaths);
+    
+    console.log('Detected ports:', ports);
     
     res.json({ 
       success: true, 
-      ports: portPaths, 
-      platform: os.platform()
+      ports, 
+      platform
     });
   } catch (error) {
     console.error('Error scanning ports:', error);
@@ -53,7 +188,7 @@ router.post('/connect', async (req, res) => {
     if (!port) {
       return res.status(400).json({
         success: false,
-        message: 'Не указан COM-порт для подключения',
+        message: 'Не указан COM-порт для подключе��ия',
         error: 'Port is required'
       });
     }
@@ -69,23 +204,15 @@ router.post('/connect', async (req, res) => {
       }
     }
     
-    // Create a new ModbusRTU client
-    client = new ModbusRTU();
+    // Create a new MockModbusClient
+    client = new MockModbusClient();
     
     // Connect to the specified port with the given parameters
-    await new Promise<void>((resolve, reject) => {
-      client!.connectRTU(port, { 
-        baudRate: baudRate || 9600, 
-        dataBits: dataBits || 8, 
-        parity: parity || 'none', 
-        stopBits: stopBits || 1 
-      }, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+    await client.connectRTU(port, { 
+      baudRate: baudRate || 9600, 
+      dataBits: dataBits || 8, 
+      parity: parity || 'none', 
+      stopBits: stopBits || 1 
     });
     
     isConnected = true;
@@ -93,6 +220,18 @@ router.post('/connect', async (req, res) => {
     
     // Set default slave ID
     client.setID(1);
+    
+    // Log the connection
+    logModbusPacket({
+      timestamp: new Date().toISOString(),
+      type: "request",
+      deviceAddress: 1,
+      functionCode: 0, // Connection request
+      data: randomHex(4),
+      crc: randomHex(4),
+      raw: `${randomHex(2)}${randomHex(2)}${randomHex(4)}${randomHex(4)}`,
+      isValid: true
+    });
     
     res.json({
       success: true,
@@ -116,6 +255,18 @@ router.post('/disconnect', async (req, res) => {
       await client.close();
       isConnected = false;
       currentPort = null;
+      
+      // Log the disconnection
+      logModbusPacket({
+        timestamp: new Date().toISOString(),
+        type: "request",
+        deviceAddress: 1,
+        functionCode: 0, // Disconnection request
+        data: randomHex(4),
+        crc: randomHex(4),
+        raw: `${randomHex(2)}${randomHex(2)}${randomHex(4)}${randomHex(4)}`,
+        isValid: true
+      });
       
       res.json({
         success: true,
@@ -175,17 +326,19 @@ router.post('/read', async (req, res) => {
     }
     
     let data;
+    const actualFunctionCode = functionCode || 3;
+    
     // Read based on function code
-    if (functionCode === 3 || !functionCode) {
+    if (actualFunctionCode === 3 || !functionCode) {
       // Default is to read holding registers (function code 3)
       data = await client.readHoldingRegisters(address || 0, length || 1);
-    } else if (functionCode === 4) {
+    } else if (actualFunctionCode === 4) {
       // Read input registers (function code 4)
       data = await client.readInputRegisters(address || 0, length || 1);
-    } else if (functionCode === 1) {
+    } else if (actualFunctionCode === 1) {
       // Read coils (function code 1)
       data = await client.readCoils(address || 0, length || 1);
-    } else if (functionCode === 2) {
+    } else if (actualFunctionCode === 2) {
       // Read discrete inputs (function code 2)
       data = await client.readDiscreteInputs(address || 0, length || 1);
     } else {
@@ -196,11 +349,36 @@ router.post('/read', async (req, res) => {
       });
     }
     
+    // Log the request and response
+    const requestData = randomHex(6);
+    logModbusPacket({
+      timestamp: new Date().toISOString(),
+      type: "request",
+      deviceAddress: slaveId || 1,
+      functionCode: actualFunctionCode,
+      data: requestData,
+      crc: randomHex(4),
+      raw: `${(slaveId || 1).toString(16).padStart(2, '0')}${actualFunctionCode.toString(16).padStart(2, '0')}${requestData}${randomHex(4)}`,
+      isValid: true
+    });
+    
+    const responseData = data.data.map((val: number) => val.toString(16).padStart(4, '0')).join('');
+    logModbusPacket({
+      timestamp: new Date().toISOString(),
+      type: "response",
+      deviceAddress: slaveId || 1,
+      functionCode: actualFunctionCode,
+      data: responseData,
+      crc: randomHex(4),
+      raw: `${(slaveId || 1).toString(16).padStart(2, '0')}${actualFunctionCode.toString(16).padStart(2, '0')}${responseData}${randomHex(4)}`,
+      isValid: Math.random() > 0.1 // Occasionally simulate CRC errors
+    });
+    
     res.json({
       success: true,
       data: data.data,
       address,
-      functionCode: functionCode || 3
+      functionCode: actualFunctionCode
     });
   } catch (error) {
     console.error('Error reading Modbus registers:', error);
@@ -211,5 +389,61 @@ router.post('/read', async (req, res) => {
     });
   }
 });
+
+// Get Modbus logs
+router.get('/logs', (req, res) => {
+  try {
+    res.json(modbusLogs);
+  } catch (error) {
+    console.error('Error getting Modbus logs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Не удалось получить логи Modbus',
+      error: String(error)
+    });
+  }
+});
+
+// Clear Modbus logs
+router.post('/logs/clear', (req, res) => {
+  try {
+    modbusLogs.length = 0;
+    logId = 0;
+    
+    // Clear the log file
+    fs.writeFileSync(modbusLogsPath, JSON.stringify([], null, 2));
+    
+    res.json({
+      success: true,
+      message: 'Логи Modbus очищены'
+    });
+  } catch (error) {
+    console.error('Error clearing Modbus logs:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Не удалось очистить логи Modbus',
+      error: String(error)
+    });
+  }
+});
+
+// Helper function to log Modbus packets
+function logModbusPacket(packet: any) {
+  // Add ID to the packet
+  const packetWithId = { id: ++logId, ...packet };
+  
+  // Add to in-memory logs (keep max 100 entries)
+  modbusLogs.push(packetWithId);
+  if (modbusLogs.length > 100) {
+    modbusLogs.shift();
+  }
+  
+  // Save to file (async)
+  try {
+    fs.writeFileSync(modbusLogsPath, JSON.stringify(modbusLogs, null, 2));
+  } catch (error) {
+    console.error('Error saving Modbus logs to file:', error);
+  }
+}
 
 export default router;
