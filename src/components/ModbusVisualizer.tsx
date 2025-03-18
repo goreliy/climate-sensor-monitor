@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash } from "lucide-react";
+import { Trash, AlertTriangle } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface ModbusPacket {
   id: number;
@@ -20,27 +21,34 @@ interface ModbusPacket {
 
 export function ModbusVisualizer() {
   const [packets, setPackets] = useState<ModbusPacket[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
 
   useEffect(() => {
-    const fetchModbusData = () => {
-      fetch('http://localhost:3001/api/modbus/logs')
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          }
-          throw new Error('Failed to fetch Modbus logs');
-        })
-        .then(data => {
-          setPackets(data);
-          if (autoScroll && scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching Modbus logs:', error);
-        });
+    const fetchModbusData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:3001/api/modbus/logs');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch Modbus logs: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setPackets(data);
+        setError(null);
+        
+        if (autoScroll && scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      } catch (error) {
+        console.error('Error fetching Modbus logs:', error);
+        setError(error instanceof Error ? error.message : 'Неизвестная ошибка при получении логов Modbus');
+      } finally {
+        setLoading(false);
+      }
     };
 
     // Initial fetch
@@ -52,20 +60,35 @@ export function ModbusVisualizer() {
     return () => clearInterval(interval);
   }, [autoScroll]);
 
-  const clearLogs = () => {
-    fetch('http://localhost:3001/api/modbus/logs/clear', {
-      method: 'POST'
-    })
-      .then(response => {
-        if (response.ok) {
-          setPackets([]);
-        } else {
-          throw new Error('Failed to clear logs');
-        }
-      })
-      .catch(error => {
-        console.error('Error clearing logs:', error);
+  const clearLogs = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/modbus/logs/clear', {
+        method: 'POST'
       });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to clear logs: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPackets([]);
+        toast({
+          title: "Успешно",
+          description: "Логи Modbus очищены",
+        });
+      } else {
+        throw new Error(data.message || 'Не удалось очистить логи');
+      }
+    } catch (error) {
+      console.error('Error clearing logs:', error);
+      toast({
+        title: "Ошибка",
+        description: error instanceof Error ? error.message : 'Неизвестная ошибка при очистке логов',
+        variant: "destructive",
+      });
+    }
   };
 
   // Format hex data with spaces for better readability
@@ -96,7 +119,16 @@ export function ModbusVisualizer() {
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[400px] rounded-md border p-4" ref={scrollRef}>
-          {packets.length === 0 ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center h-full text-red-500 gap-2">
+              <AlertTriangle size={24} />
+              <p>{error}</p>
+            </div>
+          ) : loading && packets.length === 0 ? (
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Загрузка данных Modbus...
+            </div>
+          ) : packets.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500">
               Нет данных Modbus
             </div>
