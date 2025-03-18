@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -169,12 +170,12 @@ export function Settings({ useMockData = true }: SettingsProps) {
 
   const generateMockSensors = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/generate-mock-sensors', {
-        method: 'POST',
+      // Fixed path to use the correct endpoint
+      const response = await fetch('http://localhost:3001/api/sensors/generate-mock', {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ count: 10 }),
+        }
       });
       
       if (response.ok) {

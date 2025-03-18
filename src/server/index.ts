@@ -16,6 +16,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Create necessary directories
+const configDir = path.join(__dirname, 'config');
+if (!fs.existsSync(configDir)) {
+  fs.mkdirSync(configDir, { recursive: true });
+}
+
 // Register route modules
 app.use('/api/sensors', sensorsRoutes);
 app.use('/api/readings', readingsRoutes);
@@ -24,6 +30,9 @@ app.use('/api/modbus', modbusRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/database', databaseRoutes);
+
+// Add missing import for fs
+import fs from 'fs';
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
