@@ -97,7 +97,7 @@ export function Visualization() {
         setImageUrl(e.target.result as string);
         
         // Create a new Image object to get dimensions
-        const img = new Image();
+        const img = new window.Image();
         img.onload = () => {
           imageRef.current = img;
           
@@ -297,7 +297,7 @@ export function Visualization() {
     setImageUrl(map.imagePath);
     
     // Load the image
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       imageRef.current = img;
       
