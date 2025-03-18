@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash, AlertTriangle } from "lucide-react";
+import { Trash, AlertTriangle, RefreshCcw } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 interface ModbusPacket {
@@ -17,14 +17,18 @@ interface ModbusPacket {
   crc: string;
   raw: string;
   isValid: boolean;
+  isMock?: boolean;
 }
 
 export function ModbusVisualizer() {
   const [packets, setPackets] = useState<ModbusPacket[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isMockMode, setIsMockMode] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(1000);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   useEffect(() => {
     const fetchModbusData = async () => {
@@ -38,6 +42,12 @@ export function ModbusVisualizer() {
         
         const data = await response.json();
         setPackets(data);
+        
+        // Определяем режим работы по первому пакету
+        if (data.length > 0 && data[0].hasOwnProperty('isMock')) {
+          setIsMockMode(data[0].isMock);
+        }
+        
         setError(null);
         
         if (autoScroll && scrollRef.current) {
@@ -54,11 +64,19 @@ export function ModbusVisualizer() {
     // Initial fetch
     fetchModbusData();
 
-    // Set up polling
-    const interval = setInterval(fetchModbusData, 1000);
+    // Set up polling if autoRefresh is enabled
+    let interval: NodeJS.Timeout | null = null;
     
-    return () => clearInterval(interval);
-  }, [autoScroll]);
+    if (autoRefresh) {
+      interval = setInterval(fetchModbusData, refreshInterval);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [autoScroll, refreshInterval, autoRefresh]);
 
   const clearLogs = async () => {
     try {
@@ -91,15 +109,77 @@ export function ModbusVisualizer() {
     }
   };
 
+  const refreshLogs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:3001/api/modbus/logs');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Modbus logs: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setPackets(data);
+      setError(null);
+      
+      if (autoScroll && scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+      
+      toast({
+        title: "Обновлено",
+        description: "Логи Modbus обновлены",
+      });
+    } catch (error) {
+      console.error('Error fetching Modbus logs:', error);
+      setError(error instanceof Error ? error.message : 'Неизвестная ошибка при получении логов Modbus');
+      
+      toast({
+        title: "Ошибка",
+        description: error instanceof Error ? error.message : 'Не удалось обновить логи',
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Format hex data with spaces for better readability
   const formatHexData = (hex: string) => {
     return hex.match(/.{1,2}/g)?.join(' ') || hex;
   };
 
+  // Get function name from function code
+  const getFunctionName = (code: number) => {
+    switch (code) {
+      case 1: return "Чтение выходных статусов";
+      case 2: return "Чтение входных статусов";
+      case 3: return "Чтение регистров хранения";
+      case 4: return "Чтение входных регистров";
+      case 5: return "Запись одного выхода";
+      case 6: return "Запись одного регистра";
+      case 15: return "Запись нескольких выходов";
+      case 16: return "Запись нескольких регистров";
+      default: 
+        // Коды ошибок (0x80 + function code)
+        if (code >= 0x80 && code <= 0x8F) {
+          return `Ошибка (${code - 0x80})`;
+        }
+        return `Неизвестная функция (${code})`;
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-medium">Визуализация Modbus</CardTitle>
+        <div className="flex items-center space-x-2">
+          <CardTitle className="text-lg font-medium">Визуализация Modbus</CardTitle>
+          {isMockMode !== null && (
+            <Badge variant={isMockMode ? "outline" : "default"} className={isMockMode ? "border-yellow-500 text-yellow-500" : "bg-green-500"}>
+              {isMockMode ? "Режим эмуляции" : "Реальные данные"}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center space-x-2">
           <Button 
             variant="outline" 
@@ -107,6 +187,22 @@ export function ModbusVisualizer() {
             onClick={() => setAutoScroll(!autoScroll)}
           >
             {autoScroll ? "Отключить автопрокрутку" : "Включить автопрокрутку"}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setAutoRefresh(!autoRefresh)}
+          >
+            {autoRefresh ? "Отключить автообновление" : "Включить автообновление"}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={refreshLogs}
+            disabled={loading}
+          >
+            <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''} mr-1`} />
+            Обновить
           </Button>
           <Button 
             variant="destructive" 
@@ -151,6 +247,11 @@ export function ModbusVisualizer() {
                       <span className="text-sm text-gray-500">
                         {new Date(packet.timestamp).toLocaleTimeString()}
                       </span>
+                      {packet.isMock && (
+                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                          Эмуляция
+                        </Badge>
+                      )}
                     </div>
                     <Badge variant={packet.isValid ? "default" : "destructive"}>
                       {packet.isValid ? "CRC OK" : "CRC ERROR"}
@@ -163,9 +264,7 @@ export function ModbusVisualizer() {
                     </div>
                     <div>
                       <span className="font-medium">Функция:</span> 0x{packet.functionCode.toString(16).padStart(2, '0')}
-                      {packet.functionCode === 3 ? " (Чтение регистров)" : 
-                       packet.functionCode === 6 ? " (Запись регистра)" : 
-                       packet.functionCode === 16 ? " (Запись регистров)" : ""}
+                      {" "}({getFunctionName(packet.functionCode)})
                     </div>
                     <div className="md:col-span-2">
                       <span className="font-medium">Данные:</span> {formatHexData(packet.data)}
