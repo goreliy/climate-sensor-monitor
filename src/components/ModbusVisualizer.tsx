@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash, AlertTriangle, RefreshCcw, Info } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ModbusPacket {
@@ -30,6 +30,7 @@ export function ModbusVisualizer() {
   const [autoScroll, setAutoScroll] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(1000);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchModbusData = async () => {
@@ -175,28 +176,26 @@ export function ModbusVisualizer() {
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center space-x-2">
           <CardTitle className="text-lg font-medium">Modbus Visualization</CardTitle>
-          {isMockMode !== null && (
-            <div className="flex items-center">
-              <Badge variant="outline" className="border-blue-500 text-blue-500 bg-blue-50 dark:bg-blue-950">
-                Web Modbus Emulation
-              </Badge>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
-                      <Info className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs">
-                      Using web-based Modbus emulation that doesn't require native dependencies. 
-                      This provides a fully functional Modbus simulation without requiring hardware or native modules.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
+          <div className="flex items-center">
+            <Badge variant="outline" className="border-blue-500 text-blue-500 bg-blue-50 dark:bg-blue-950">
+              Web Modbus Emulation
+            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Using web-based Modbus emulation that doesn't require native dependencies. 
+                    This provides a fully functional Modbus simulation without requiring hardware or native modules.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
         <div className="flex items-center space-x-2">
           <Button 

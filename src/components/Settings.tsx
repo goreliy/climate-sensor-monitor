@@ -118,7 +118,11 @@ export function Settings({ useMockData = true }: SettingsProps) {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify({
+            ...data,
+            // Override with web emulation friendly settings
+            useWebEmulation: true
+          }),
         }),
         
         fetch('http://localhost:3001/api/sensors/config', {
@@ -142,7 +146,10 @@ export function Settings({ useMockData = true }: SettingsProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          settings: data, 
+          settings: {
+            ...data,
+            useWebEmulation: true
+          }, 
           sensors,
           timestamp: new Date().toISOString()
         }),
