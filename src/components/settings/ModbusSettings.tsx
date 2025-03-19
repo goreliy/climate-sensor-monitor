@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
@@ -12,7 +11,7 @@ import { ModbusVisualizer } from "../ModbusVisualizer";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Power, PlugZap } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface ModbusSettingsProps {
   form: UseFormReturn<SettingsFormData>;
@@ -40,14 +39,22 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
       }
 
       try {
-        const response = await fetch('http://localhost:3001/api/system/os');
+        console.log("Определение ОС...");
+        const baseUrl = useMockData ? 'http://localhost:3001' : window.location.origin;
+        const response = await fetch(`${baseUrl}/api/system/os`);
+        console.log(`Статус определения ОС: ${response.status}`);
+        
         if (response.ok) {
           const { os } = await response.json();
+          console.log(`Определена ОС: ${os}`);
           setOsType(os.toLowerCase().includes('win') ? 'windows' : 
                    os.toLowerCase().includes('linux') ? 'linux' : 'other');
+        } else {
+          console.error(`Ошибка определения ОС: ${response.status}`);
+          throw new Error('Не удалось определить ОС');
         }
       } catch (error) {
-        console.error('Error detecting OS:', error);
+        console.error('Ошибка определения ОС:', error);
         // If we can't detect, assume Windows as it's most common
         setOsType('windows');
       }
@@ -59,6 +66,7 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
   const scanPorts = async () => {
     if (useMockData) {
       setIsScanning(true);
+      console.log("Симуляция сканирования портов в режиме мок-данных");
       // Simulate port scanning in mock mode based on detected OS
       setTimeout(() => {
         if (osType === 'windows') {
@@ -79,37 +87,76 @@ export function ModbusSettings({ form, useMockData = true }: ModbusSettingsProps
 
     try {
       setIsScanning(true);
-      const response = await fetch('http://localhost:3001/api/modbus/scan');
+      console.log("Начало сканирования портов...");
       
-      if (response.ok) {
-        const data = await response.json();
+      const baseUrl = useMockData ? 'http://localhost:3001' : window.location.origin;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 секунд таймаут
+      
+      try {
+        const response = await fetch(`${baseUrl}/api/modbus/scan`, {
+          signal: controller.signal
+        });
         
-        if (data.success) {
-          setAvailablePorts(data.ports);
-          toast({
-            title: "Сканирование завершено",
-            description: `Найдено ${data.ports.length} доступных портов`,
-          });
+        console.log(`Статус сканирования портов: ${response.status}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success) {
+            console.log(`Найдено портов: ${data.ports.length}`, data.ports);
+            setAvailablePorts(data.ports.map((p: any) => p.path || p));
+            toast({
+              title: "Сканирование завершено",
+              description: `Найдено ${data.ports.length} доступных портов`,
+            });
+          } else {
+            // Handle API success but operation failure
+            console.error("API вернул ошибку:", data.message);
+            setAvailablePorts([]);
+            toast({
+              title: "Ошибка",
+              description: data.message || "Не удалось просканировать порты",
+              variant: "destructive",
+            });
+          }
         } else {
-          // Handle API success but operation failure
+          // Handle non-200 responses
+          console.error(`Ошибка сканирования портов: ${response.status}`);
+          const errorData = await response.json().catch(() => ({
+            message: "Не удалось просканировать порты. Проверьте права доступа."
+          }));
+          
           setAvailablePorts([]);
+          throw new Error(errorData.message);
+        }
+        
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        console.error('Ошибка запроса при сканировании портов:', fetchError);
+        
+        // В случае таймаута или другой ошибки сети, создаем моковые порты
+        if (fetchError.name === 'AbortError') {
+          console.log("Таймаут запроса, используем моковые данные");
+          if (osType === 'windows') {
+            setAvailablePorts(['COM1', 'COM2', 'COM3', 'COM4']);
+          } else if (osType === 'linux') {
+            setAvailablePorts(['/dev/ttyMCX1', '/dev/ttyMCX2', '/dev/ttyMCX3', '/dev/ttyACM0', '/dev/ttyUSB0']);
+          } else {
+            setAvailablePorts(['/dev/tty.usbserial', '/dev/tty.usbmodem1', '/dev/tty.usbmodem2']);
+          }
+          
           toast({
-            title: "Ошибка",
-            description: data.message || "Не удалось просканировать порты",
+            title: "Предупреждение",
+            description: "Таймаут запроса. Ис��ользуются примерные данные о портах.",
             variant: "destructive",
           });
+        } else {
+          throw fetchError;
         }
-      } else {
-        // Handle non-200 responses
-        const errorData = await response.json().catch(() => ({
-          message: "Не удалось просканировать порты. Проверьте права доступа."
-        }));
-        
-        setAvailablePorts([]);
-        throw new Error(errorData.message);
       }
     } catch (error) {
-      console.error('Error scanning ports:', error);
+      console.error('Ошибка сканирования портов:', error);
       toast({
         title: "Ошибка",
         description: error instanceof Error ? error.message : "Не удалось просканировать порты. Проверьте права доступа.",
