@@ -69,7 +69,7 @@ const createModbusPacket = (type: 'request' | 'response', slaveId: number, funct
 
 // Web-based emulation of Modbus RTU
 class WebModbusRTU {
-  private isOpen = false;
+  private _isOpen = false;
   private deviceId = 1;
   private lastError: Error | null = null;
   private delay = 50; // ms, to simulate real communication delays
@@ -96,14 +96,14 @@ class WebModbusRTU {
       throw this.lastError;
     }
     
-    this.isOpen = true;
+    this._isOpen = true;
     this.portName = port;
   }
 
   async close(): Promise<void> {
     // Simulate disconnection delay
     await setTimeout(50);
-    this.isOpen = false;
+    this._isOpen = false;
     this.portName = null;
   }
 
@@ -116,8 +116,9 @@ class WebModbusRTU {
     this.delay = Math.min(timeout, 100); // Cap at 100ms to keep UI responsive
   }
 
+  // Public getter for the isOpen property
   get isOpen(): boolean {
-    return this.isOpen;
+    return this._isOpen;
   }
 
   async readHoldingRegisters(address: number, length: number): Promise<{ data: number[] }> {
