@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash, AlertTriangle, RefreshCcw } from "lucide-react";
+import { Trash, AlertTriangle, RefreshCcw, Info } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ModbusPacket {
   id: number;
@@ -43,7 +44,7 @@ export function ModbusVisualizer() {
         const data = await response.json();
         setPackets(data);
         
-        // Определяем режим работы по первому пакету
+        // Determine operating mode from the first packet
         if (data.length > 0 && data[0].hasOwnProperty('isMock')) {
           setIsMockMode(data[0].isMock);
         }
@@ -55,7 +56,7 @@ export function ModbusVisualizer() {
         }
       } catch (error) {
         console.error('Error fetching Modbus logs:', error);
-        setError(error instanceof Error ? error.message : 'Неизвестная ошибка при получении логов Modbus');
+        setError(error instanceof Error ? error.message : 'Unknown error getting Modbus logs');
       } finally {
         setLoading(false);
       }
@@ -93,17 +94,17 @@ export function ModbusVisualizer() {
       if (data.success) {
         setPackets([]);
         toast({
-          title: "Успешно",
-          description: "Логи Modbus очищены",
+          title: "Success",
+          description: "Modbus logs cleared",
         });
       } else {
-        throw new Error(data.message || 'Не удалось очистить логи');
+        throw new Error(data.message || 'Failed to clear logs');
       }
     } catch (error) {
       console.error('Error clearing logs:', error);
       toast({
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : 'Неизвестная ошибка при очистке логов',
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Unknown error clearing logs',
         variant: "destructive",
       });
     }
@@ -127,16 +128,16 @@ export function ModbusVisualizer() {
       }
       
       toast({
-        title: "Обновлено",
-        description: "Логи Modbus обновлены",
+        title: "Updated",
+        description: "Modbus logs refreshed",
       });
     } catch (error) {
       console.error('Error fetching Modbus logs:', error);
-      setError(error instanceof Error ? error.message : 'Неизвестная ошибка при получении логов Modbus');
+      setError(error instanceof Error ? error.message : 'Unknown error getting Modbus logs');
       
       toast({
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : 'Не удалось обновить логи',
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to refresh logs',
         variant: "destructive",
       });
     } finally {
@@ -152,20 +153,20 @@ export function ModbusVisualizer() {
   // Get function name from function code
   const getFunctionName = (code: number) => {
     switch (code) {
-      case 1: return "Чтение выходных статусов";
-      case 2: return "Чтение входных статусов";
-      case 3: return "Чтение регистров хранения";
-      case 4: return "Чтение входных регистров";
-      case 5: return "Запись одного выхода";
-      case 6: return "Запись одного регистра";
-      case 15: return "Запись нескольких выходов";
-      case 16: return "Запись нескольких регистров";
+      case 1: return "Read Coil Status";
+      case 2: return "Read Input Status";
+      case 3: return "Read Holding Registers";
+      case 4: return "Read Input Registers";
+      case 5: return "Write Single Coil";
+      case 6: return "Write Single Register";
+      case 15: return "Write Multiple Coils";
+      case 16: return "Write Multiple Registers";
       default: 
-        // Коды ошибок (0x80 + function code)
+        // Error codes (0x80 + function code)
         if (code >= 0x80 && code <= 0x8F) {
-          return `Ошибка (${code - 0x80})`;
+          return `Error (${code - 0x80})`;
         }
-        return `Неизвестная функция (${code})`;
+        return `Unknown Function (${code})`;
     }
   };
 
@@ -173,11 +174,28 @@ export function ModbusVisualizer() {
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div className="flex items-center space-x-2">
-          <CardTitle className="text-lg font-medium">Визуализация Modbus</CardTitle>
+          <CardTitle className="text-lg font-medium">Modbus Visualization</CardTitle>
           {isMockMode !== null && (
-            <Badge variant={isMockMode ? "outline" : "default"} className={isMockMode ? "border-yellow-500 text-yellow-500" : "bg-green-500"}>
-              {isMockMode ? "Режим эмуляции" : "Реальные данные"}
-            </Badge>
+            <div className="flex items-center">
+              <Badge variant="outline" className="border-blue-500 text-blue-500 bg-blue-50 dark:bg-blue-950">
+                Web Modbus Emulation
+              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 ml-1">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Using web-based Modbus emulation that doesn't require native dependencies. 
+                      This provides a fully functional Modbus simulation without requiring hardware or native modules.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -186,14 +204,14 @@ export function ModbusVisualizer() {
             size="sm" 
             onClick={() => setAutoScroll(!autoScroll)}
           >
-            {autoScroll ? "Отключить автопрокрутку" : "Включить автопрокрутку"}
+            {autoScroll ? "Disable Auto-scroll" : "Enable Auto-scroll"}
           </Button>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => setAutoRefresh(!autoRefresh)}
           >
-            {autoRefresh ? "Отключить автообновление" : "Включить автообновление"}
+            {autoRefresh ? "Disable Auto-refresh" : "Enable Auto-refresh"}
           </Button>
           <Button 
             variant="outline" 
@@ -202,14 +220,14 @@ export function ModbusVisualizer() {
             disabled={loading}
           >
             <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''} mr-1`} />
-            Обновить
+            Refresh
           </Button>
           <Button 
             variant="destructive" 
             size="sm"
             onClick={clearLogs}
           >
-            <Trash className="h-4 w-4 mr-1" /> Очистить
+            <Trash className="h-4 w-4 mr-1" /> Clear
           </Button>
         </div>
       </CardHeader>
@@ -222,11 +240,11 @@ export function ModbusVisualizer() {
             </div>
           ) : loading && packets.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500">
-              Загрузка данных Modbus...
+              Loading Modbus data...
             </div>
           ) : packets.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500">
-              Нет данных Modbus
+              No Modbus data available
             </div>
           ) : (
             <div className="space-y-3">
@@ -242,16 +260,14 @@ export function ModbusVisualizer() {
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center space-x-2">
                       <Badge variant={packet.type === "request" ? "default" : "outline"}>
-                        {packet.type === "request" ? "Запрос" : "Ответ"}
+                        {packet.type === "request" ? "Request" : "Response"}
                       </Badge>
                       <span className="text-sm text-gray-500">
                         {new Date(packet.timestamp).toLocaleTimeString()}
                       </span>
-                      {packet.isMock && (
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                          Эмуляция
-                        </Badge>
-                      )}
+                      <Badge variant="outline" className="border-blue-500 text-blue-500">
+                        Web Emulation
+                      </Badge>
                     </div>
                     <Badge variant={packet.isValid ? "default" : "destructive"}>
                       {packet.isValid ? "CRC OK" : "CRC ERROR"}
@@ -260,14 +276,14 @@ export function ModbusVisualizer() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                     <div>
-                      <span className="font-medium">Адрес устройства:</span> 0x{packet.deviceAddress.toString(16).padStart(2, '0')}
+                      <span className="font-medium">Device Address:</span> 0x{packet.deviceAddress.toString(16).padStart(2, '0')}
                     </div>
                     <div>
-                      <span className="font-medium">Функция:</span> 0x{packet.functionCode.toString(16).padStart(2, '0')}
+                      <span className="font-medium">Function:</span> 0x{packet.functionCode.toString(16).padStart(2, '0')}
                       {" "}({getFunctionName(packet.functionCode)})
                     </div>
                     <div className="md:col-span-2">
-                      <span className="font-medium">Данные:</span> {formatHexData(packet.data)}
+                      <span className="font-medium">Data:</span> {formatHexData(packet.data)}
                     </div>
                     <div>
                       <span className="font-medium">CRC:</span> {formatHexData(packet.crc)}

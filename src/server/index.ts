@@ -38,7 +38,12 @@ app.use('/api/system', systemRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/database', databaseRoutes);
 
+// Start message
+console.log('Climate Sensor Monitor Server initializing...');
+console.log('Using Web Modbus implementation (no native dependencies required)');
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Web interface available at http://localhost:${PORT === 3001 ? 3000 : PORT}`);
 });

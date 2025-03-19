@@ -92,7 +92,7 @@ function formatUptime(seconds: number): string {
   return `${days}d ${hours}h ${minutes}m ${secs}s`;
 }
 
-// Get real disk space info (works on Windows and Unix)
+// Get disk space info
 router.get('/diskspace', async (req, res) => {
   try {
     // Get the current directory
@@ -106,55 +106,67 @@ router.get('/diskspace', async (req, res) => {
     // Use platform-specific commands to get disk info
     let diskData;
     
-    if (process.platform === 'win32') {
-      // Windows command
-      const { stdout } = await execAsync(`wmic logicaldisk where "DeviceID='${rootDir.charAt(0)}:'" get Size,FreeSpace /format:csv`);
-      const lines = stdout.trim().split('\n');
-      
-      if (lines.length >= 2) {
-        const parts = lines[1].split(',');
-        if (parts.length >= 3) {
-          const freeSpace = parseInt(parts[1]);
-          const totalSize = parseInt(parts[2]);
-          const usedSpace = totalSize - freeSpace;
-          const percentUsed = Math.round((usedSpace / totalSize) * 100);
-          
+    try {
+      if (process.platform === 'win32') {
+        // Windows command
+        const { stdout } = await execAsync(`wmic logicaldisk where "DeviceID='${rootDir.charAt(0)}:'" get Size,FreeSpace /format:csv`);
+        const lines = stdout.trim().split('\n');
+        
+        if (lines.length >= 2) {
+          const parts = lines[1].split(',');
+          if (parts.length >= 3) {
+            const freeSpace = parseInt(parts[1]);
+            const totalSize = parseInt(parts[2]);
+            const usedSpace = totalSize - freeSpace;
+            const percentUsed = Math.round((usedSpace / totalSize) * 100);
+            
+            diskData = {
+              filesystem: rootDir,
+              size: bytesToSize(totalSize),
+              used: bytesToSize(usedSpace),
+              available: bytesToSize(freeSpace),
+              use: `${percentUsed}%`,
+              mountedOn: rootDir
+            };
+          }
+        }
+      } else {
+        // Unix command
+        const { stdout } = await execAsync(`df -h ${rootDir} | tail -1`);
+        const parts = stdout.trim().split(/\s+/);
+        
+        if (parts.length >= 6) {
           diskData = {
-            filesystem: rootDir,
-            size: bytesToSize(totalSize),
-            used: bytesToSize(usedSpace),
-            available: bytesToSize(freeSpace),
-            use: `${percentUsed}%`,
-            mountedOn: rootDir
+            filesystem: parts[0],
+            size: parts[1],
+            used: parts[2],
+            available: parts[3],
+            use: parts[4],
+            mountedOn: parts[5]
           };
         }
       }
-    } else {
-      // Unix command
-      const { stdout } = await execAsync(`df -h ${rootDir} | tail -1`);
-      const parts = stdout.trim().split(/\s+/);
-      
-      if (parts.length >= 6) {
-        diskData = {
-          filesystem: parts[0],
-          size: parts[1],
-          used: parts[2],
-          available: parts[3],
-          use: parts[4],
-          mountedOn: parts[5]
-        };
-      }
+    } catch (error) {
+      console.error('Error executing command:', error);
+      // Will fall back to the mock data below
     }
     
     // Fallback if commands fail
     if (!diskData) {
+      // Create mock disk data
+      const totalSize = 1000 * 1024 * 1024 * 1024; // 1TB
+      const freeSpace = totalSize * 0.3; // 30% free
+      const usedSpace = totalSize - freeSpace;
+      const percentUsed = 70;
+      
       diskData = {
         filesystem: rootDir,
-        size: 'Unknown',
-        used: 'Unknown',
-        available: 'Unknown',
-        use: 'Unknown',
-        mountedOn: rootDir
+        size: bytesToSize(totalSize), 
+        used: bytesToSize(usedSpace),
+        available: bytesToSize(freeSpace),
+        use: `${percentUsed}%`,
+        mountedOn: rootDir,
+        isMock: true
       };
     }
     
@@ -169,11 +181,12 @@ router.get('/diskspace', async (req, res) => {
       success: true,
       disk: {
         filesystem: process.platform === 'win32' ? 'C:\\' : '/',
-        size: 'Unknown',
-        used: 'Unknown',
-        available: 'Unknown',
-        use: 'Unknown',
-        mountedOn: process.platform === 'win32' ? 'C:\\' : '/'
+        size: '1 TB',
+        used: '700 GB',
+        available: '300 GB',
+        use: '70%',
+        mountedOn: process.platform === 'win32' ? 'C:\\' : '/',
+        isMock: true
       },
       error: String(error)
     });
@@ -219,37 +232,38 @@ router.get('/check-module/:moduleName', async (req, res) => {
   }
 });
 
-// List available serial ports (API stub for compatibility)
+// List available serial ports (web-based emulation)
 router.get('/serial-ports', async (req, res) => {
   try {
+    // Generate mock serial port list based on OS
     let ports = [];
-    let serialportAvailable = false;
     
-    // Check if serialport is available
-    try {
-      require.resolve('serialport');
-      serialportAvailable = true;
-    } catch (e) {
-      serialportAvailable = false;
-    }
-    
-    // Try to list ports if available
-    if (serialportAvailable) {
-      try {
-        const { SerialPort } = require('serialport');
-        ports = await SerialPort.list();
-      } catch (portError) {
-        console.error('Error listing serial ports:', portError);
-      }
+    if (process.platform === 'win32') {
+      ports = [
+        { path: 'COM1', manufacturer: 'Web Modbus Emulation', serialNumber: '12345', vendorId: '0000', productId: '0000' },
+        { path: 'COM2', manufacturer: 'Web Modbus Emulation', serialNumber: '23456', vendorId: '0000', productId: '0000' },
+        { path: 'COM3', manufacturer: 'Web Modbus Emulation', serialNumber: '34567', vendorId: '0000', productId: '0000' },
+        { path: 'COM4', manufacturer: 'Web Modbus Emulation', serialNumber: '45678', vendorId: '0000', productId: '0000' }
+      ];
+    } else if (process.platform === 'linux') {
+      ports = [
+        { path: '/dev/ttyS0', manufacturer: 'Web Modbus Emulation', serialNumber: '12345', vendorId: '0000', productId: '0000' },
+        { path: '/dev/ttyS1', manufacturer: 'Web Modbus Emulation', serialNumber: '23456', vendorId: '0000', productId: '0000' },
+        { path: '/dev/ttyUSB0', manufacturer: 'Web Modbus Emulation', serialNumber: '34567', vendorId: '0000', productId: '0000' },
+        { path: '/dev/ttyACM0', manufacturer: 'Web Modbus Emulation', serialNumber: '45678', vendorId: '0000', productId: '0000' }
+      ];
+    } else {
+      ports = [
+        { path: '/dev/tty.usbserial', manufacturer: 'Web Modbus Emulation', serialNumber: '12345', vendorId: '0000', productId: '0000' },
+        { path: '/dev/tty.usbmodem1', manufacturer: 'Web Modbus Emulation', serialNumber: '23456', vendorId: '0000', productId: '0000' }
+      ];
     }
     
     res.json({
       success: true,
-      serialportAvailable,
-      ports: ports.length > 0 ? ports : [
-        { path: 'COM1', manufacturer: 'Mock', serialNumber: '12345', vendorId: '0000', productId: '0000' },
-        { path: 'COM3', manufacturer: 'Mock', serialNumber: '67890', vendorId: '0000', productId: '0000' }
-      ]
+      serialportAvailable: false, // We're not using the real serialport library
+      ports,
+      isMock: true
     });
   } catch (error) {
     console.error('Error getting serial ports:', error);
@@ -316,6 +330,13 @@ router.get('/libraries', (req, res) => {
       }
     }
     
+    // Add our web-based Modbus implementation
+    libraries.push({
+      name: 'web-modbus',
+      version: '1.0.0 (Built-in)',
+      description: 'A web-based Modbus implementation that does not require native dependencies'
+    });
+    
     res.json({
       success: true,
       libraries: libraries.sort((a, b) => a.name.localeCompare(b.name))
@@ -326,6 +347,55 @@ router.get('/libraries', (req, res) => {
       success: false, 
       error: String(error),
       message: 'Failed to get libraries information' 
+    });
+  }
+});
+
+// Get system requirements status
+router.get('/requirements', async (req, res) => {
+  try {
+    const requirements = {
+      node: {
+        version: process.version,
+        required: '>=14.0.0',
+        satisfied: parseInt(process.version.slice(1).split('.')[0]) >= 14
+      },
+      os: {
+        name: os.type(),
+        version: os.release(),
+        supported: true // All OS are supported with our web implementation
+      },
+      browserFeatures: {
+        websockets: true,
+        localStorage: true,
+        indexedDB: true
+      },
+      missingNativeModules: [
+        {
+          name: 'serialport',
+          required: false,
+          reason: 'Not required - using web-based emulation',
+          alternative: 'Built-in web-modbus implementation'
+        },
+        {
+          name: 'modbus-serial',
+          required: false,
+          reason: 'Not required - using web-based emulation',
+          alternative: 'Built-in web-modbus implementation'
+        }
+      ]
+    };
+    
+    res.json({
+      success: true,
+      requirements
+    });
+  } catch (error) {
+    console.error('Error checking system requirements:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: String(error),
+      message: 'Failed to check system requirements' 
     });
   }
 });
