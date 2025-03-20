@@ -22,71 +22,71 @@ The Climate Sensor Monitor is designed to help track temperature and humidity da
 npm install
 ```
 
-3. Install TypeScript development dependencies:
-```sh
-npm install --save-dev typescript ts-node @types/node @types/express @types/cors
-```
-
 ## Running the Application
 
-This application consists of two parts that need to be run separately:
+This application consists of two parts that can be run together or separately:
 
-### 1. Start the Frontend Server
+### Option 1: Start Both Frontend and Backend (Recommended)
 
 ```sh
 npm run dev
 ```
 
-This will start the Vite development server for the frontend application, typically available at http://localhost:8080
+This will start both the Vite development server for the frontend and the backend server.
 
-### 2. Start the Backend Server
+### Option 2: Start Frontend and Backend Separately
 
-In a separate terminal, run:
-
+1. Start the Frontend Server:
 ```sh
-node src/server-setup.js
+npm run dev:frontend
 ```
 
-This will compile and start the backend server. The server will be available at http://localhost:3001
+2. In a separate terminal, start the Backend Server:
+```sh
+npm run dev:backend
+```
+
+### Web Mode (No Native Dependencies)
+
+If you encounter issues with native dependencies like SQLite, the application will automatically fall back to a web-compatible mode that uses in-memory storage. This is perfect for development and testing.
 
 ### Troubleshooting
 
 If you encounter errors when starting the server:
 
-1. Make sure you've installed the TypeScript development dependencies:
+1. Try running with the simplified setup:
 ```sh
-npm install --save-dev typescript ts-node @types/node @types/express @types/cors
+node src/server-setup.js
 ```
 
-2. Try manually compiling and running the server:
+2. If you see errors about missing modules or compilation failures, the system will automatically start a fallback server that works in any environment.
+
+3. For frontend-only development, you can run just the Vite server:
 ```sh
-npx typescript --project tsconfig.node.json
-node dist/server/index.js
+npm run dev:frontend
 ```
 
-3. Check that your tsconfig.node.json file is correctly configured for compiling the server code.
-
-4. If you see errors about ES modules, remember that this project uses ES Module syntax in both frontend and backend code.
-
-5. If you see an error about the compiled file not being found, check the output directory in tsconfig.node.json and make sure it's set to dist/server.
+4. Check the console for any error messages or warnings.
 
 ## Features
 
 - Real-time sensor data monitoring
 - Temperature and humidity visualization
 - Alert configuration for threshold values
-- Modbus communication support
+- Modbus communication support (web emulation)
 - System status monitoring
+- Responsive design for desktop and mobile devices
 
 ## Usage
 
-1. After starting both servers, navigate to http://localhost:8080 in your browser
-2. If the frontend can't connect to the backend, you'll see a notification to start the server
-3. Once connected, you can view sensor data, configure settings, and monitor system status
+1. After starting the application, navigate to http://localhost:8080 in your browser
+2. Use the dashboard to view sensor data and system status
+3. Configure settings and alerts in the Settings menu
+4. View sensor placement on the visualization map
 
-## Troubleshooting
+## Development Notes
 
-If you experience connection errors:
-- Ensure both frontend and backend servers are running
-- Check that the backend is running on port 3001
-- Look for error messages in both terminal windows
+- The application uses an in-memory database in development mode
+- No actual hardware connections are required for testing and development
+- All Modbus communication is simulated for development purposes
+

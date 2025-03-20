@@ -48,11 +48,12 @@ export default defineConfig(({ mode }) => ({
         'node_modules/@serialport/**',
         'node_modules/serialport/**', 
         'node_modules/modbus-serial/**',
+        'node_modules/sqlite3/**',
       ],
     },
   },
   optimizeDeps: {
     // Exclude native modules from processing
-    exclude: ['serialport', '@serialport/bindings', 'modbus-serial'],
+    exclude: ['serialport', '@serialport/bindings', 'modbus-serial', 'sqlite3'],
   },
 }));
