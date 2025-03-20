@@ -44,9 +44,11 @@ node src/server-setup.js
 
 This will compile and start the backend server. The server will be available at http://localhost:3001
 
-### Alternatively, Start the Backend Server Directly
+### Troubleshooting
 
-If you encounter issues with the setup script, you can also run the server directly using one of these commands:
+If you encounter an error about "ES module scope", make sure you're using the updated server-setup.js file, which uses ES Module syntax.
+
+If you need to run the server directly without the setup script, use one of these commands:
 
 ```sh
 # Using ts-node (if installed)

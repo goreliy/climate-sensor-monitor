@@ -4,9 +4,14 @@
  * It compiles TypeScript to JavaScript and then runs the server
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create necessary directories
 const configDir = path.join(__dirname, 'server', 'config');
@@ -34,7 +39,8 @@ console.log('Attempting to start the server...');
 try {
   // Check if ts-node is available
   try {
-    require.resolve('ts-node');
+    // Using dynamic import for checking if ts-node is installed
+    await import('ts-node');
     console.log('Using ts-node to run the server');
     execSync('npx ts-node --transpile-only src/server/index.ts', { stdio: 'inherit' });
   } catch (e) {
