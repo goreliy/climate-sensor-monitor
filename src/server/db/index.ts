@@ -15,6 +15,7 @@ export interface DBVisualizationMap {
 class InMemoryDB {
   private data: { [table: string]: any[] };
   private counters: { [table: string]: number };
+  private inTransaction: boolean = false;
 
   constructor() {
     this.data = {
@@ -50,10 +51,67 @@ class InMemoryDB {
       }
     }
     
+    // Check if it's a DELETE statement
+    if (sql.trim().toUpperCase().startsWith('DELETE FROM')) {
+      const match = sql.match(/DELETE FROM\s+(\w+)/i);
+      if (match && match[1]) {
+        const tableName = match[1];
+        if (this.data[tableName]) {
+          this.data[tableName] = [];
+          console.log(`Deleted all records from table: ${tableName}`);
+        }
+      }
+    }
+    
     // Execute callback if provided
     if (callback) {
       callback(null);
     }
+  }
+  
+  // Implementation of serialize - executes a sequence of operations within a transaction
+  serialize(callback: (err: Error | null) => void): void {
+    this.inTransaction = true;
+    console.log('Starting transaction (serialize)');
+    callback(null);
+  }
+  
+  // Begin a transaction
+  run_begin_transaction(): void {
+    this.inTransaction = true;
+    console.log('BEGIN TRANSACTION');
+  }
+  
+  // Implementation for prepare - creates a prepared statement
+  prepare(sql: string): PreparedStatement {
+    return new PreparedStatement(sql, this);
+  }
+  
+  // Commit a transaction
+  run_commit(): void {
+    this.inTransaction = false;
+    console.log('COMMIT TRANSACTION');
+  }
+  
+  // Rollback a transaction
+  run_rollback(): void {
+    this.inTransaction = false;
+    console.log('ROLLBACK TRANSACTION');
+  }
+  
+  // Begin transaction wrapper
+  BEGIN(): void {
+    this.run_begin_transaction();
+  }
+  
+  // Commit transaction wrapper
+  COMMIT(): void {
+    this.run_commit();
+  }
+  
+  // Rollback transaction wrapper
+  ROLLBACK(): void {
+    this.run_rollback();
   }
   
   // Seed the database with some initial data
@@ -139,6 +197,29 @@ class InMemoryDB {
       
       callback(null, rows.length > 0 ? rows[0] : null);
     });
+  }
+}
+
+// PreparedStatement class to simulate prepared statements
+class PreparedStatement {
+  private sql: string;
+  private db: InMemoryDB;
+  
+  constructor(sql: string, db: InMemoryDB) {
+    this.sql = sql;
+    this.db = db;
+    console.log(`Prepared statement: ${sql.substring(0, 50)}...`);
+  }
+  
+  run(params: any[]): void {
+    console.log(`Executing prepared statement with params: ${JSON.stringify(params)}`);
+    // In a real implementation, this would execute the prepared statement
+    // For our mock implementation, we just log the call
+  }
+  
+  finalize(): void {
+    console.log('Finalized prepared statement');
+    // Cleanup resources associated with the prepared statement
   }
 }
 
