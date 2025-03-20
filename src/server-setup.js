@@ -11,6 +11,7 @@ const path = require('path');
 // Create necessary directories
 const configDir = path.join(__dirname, 'server', 'config');
 const logsDir = path.join(__dirname, 'server', 'logs');
+const routesDir = path.join(__dirname, 'server', 'routes');
 
 // Check if directories exist and create them if they don't
 if (!fs.existsSync(configDir)) {
@@ -23,6 +24,11 @@ if (!fs.existsSync(logsDir)) {
   console.log(`Created logs directory: ${logsDir}`);
 }
 
+if (!fs.existsSync(routesDir)) {
+  fs.mkdirSync(routesDir, { recursive: true });
+  console.log(`Created routes directory: ${routesDir}`);
+}
+
 console.log('Attempting to start the server...');
 
 try {
@@ -30,7 +36,7 @@ try {
   try {
     require.resolve('ts-node');
     console.log('Using ts-node to run the server');
-    execSync('ts-node --transpile-only src/server/index.ts', { stdio: 'inherit' });
+    execSync('npx ts-node --transpile-only src/server/index.ts', { stdio: 'inherit' });
   } catch (e) {
     console.log('ts-node not found, compiling TypeScript to JavaScript first');
     
@@ -42,14 +48,11 @@ try {
   }
 } catch (error) {
   console.error(`Error starting server: ${error.message}`);
-  console.log('\nAlternative methods to start the server:');
-  console.log('1. Install ts-node:');
-  console.log('   npm install -g ts-node');
-  console.log('   Then run:');
-  console.log('   ts-node src/server/index.ts');
-  console.log('\n2. Compile TypeScript first:');
+  console.log('\nTo start the server, run one of these commands:');
+  console.log('1. Using ts-node:');
+  console.log('   npx ts-node --transpile-only src/server/index.ts');
+  console.log('\n2. Compile and run:');
   console.log('   npx tsc src/server/index.ts --outDir dist --esModuleInterop');
-  console.log('   Then run:');
   console.log('   node dist/server/index.js');
   
   process.exit(1);

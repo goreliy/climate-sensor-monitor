@@ -26,21 +26,15 @@ app.use(express.json());
 const configDir = path.join(__dirname, 'config');
 const logsDir = path.join(__dirname, 'logs');
 const routesDir = path.join(__dirname, 'routes');
+const dbDir = path.join(__dirname, 'db');
 
-if (!fs.existsSync(configDir)) {
-  fs.mkdirSync(configDir, { recursive: true });
-  console.log(`${colors.green}Created config directory: ${configDir}${colors.reset}`);
-}
-
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-  console.log(`${colors.green}Created logs directory: ${logsDir}${colors.reset}`);
-}
-
-if (!fs.existsSync(routesDir)) {
-  fs.mkdirSync(routesDir, { recursive: true });
-  console.log(`${colors.green}Created routes directory: ${routesDir}${colors.reset}`);
-}
+// Check and create all necessary directories
+[configDir, logsDir, routesDir, dbDir].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`${colors.green}Created directory: ${dir}${colors.reset}`);
+  }
+});
 
 // Add API request logging middleware
 app.use((req, res, next) => {
@@ -70,8 +64,14 @@ routeModules.forEach(routeName => {
   try {
     let routeModule;
     try {
-      routeModule = require(`./routes/${routeName}`).default;
-      console.log(`${colors.green}Loaded route module: ${routeName}${colors.reset}`);
+      // Try to dynamically import the route module
+      const modulePath = path.join(__dirname, 'routes', `${routeName}.ts`);
+      if (fs.existsSync(modulePath)) {
+        routeModule = require(`./routes/${routeName}`).default;
+        console.log(`${colors.green}Loaded route module: ${routeName}${colors.reset}`);
+      } else {
+        throw new Error(`Route module not found: ${modulePath}`);
+      }
     } catch (err) {
       console.log(`${colors.yellow}Creating mock route for: ${routeName}${colors.reset}`);
       routeModule = createMockRoute(routeName);

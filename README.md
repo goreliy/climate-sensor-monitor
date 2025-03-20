@@ -1,69 +1,79 @@
-# Welcome to your Lovable project
 
-## Project info
+# Climate Sensor Monitor
 
-**URL**: https://lovable.dev/projects/512f2856-fd5e-4801-ba8d-17b1450b597c
+A web-based application for monitoring and managing climate sensors.
 
-## How can I edit this code?
+## Project Overview
 
-There are several ways of editing your application.
+The Climate Sensor Monitor is designed to help track temperature and humidity data from various sensors. It provides a user-friendly interface for monitoring sensor readings, configuring alert thresholds, and visualizing environmental data.
 
-**Use Lovable**
+## Getting Started
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/512f2856-fd5e-4801-ba8d-17b1450b597c) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v14 or later)
+- npm (v6 or later)
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone this repository
+2. Install dependencies:
+```sh
+npm install
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Running the Application
 
-Follow these steps:
+This application consists of two parts that need to be run separately:
+
+### 1. Start the Frontend Server
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+This will start the Vite development server for the frontend application, typically available at http://localhost:8080
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 2. Start the Backend Server
 
-**Use GitHub Codespaces**
+In a separate terminal, run:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```sh
+node src/server-setup.js
+```
 
-## What technologies are used for this project?
+This will compile and start the backend server. The server will be available at http://localhost:3001
 
-This project is built with .
+### Alternatively, Start the Backend Server Directly
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+If you encounter issues with the setup script, you can also run the server directly using one of these commands:
 
-## How can I deploy this project?
+```sh
+# Using ts-node (if installed)
+npx ts-node --transpile-only src/server/index.ts
 
-Simply open [Lovable](https://lovable.dev/projects/512f2856-fd5e-4801-ba8d-17b1450b597c) and click on Share -> Publish.
+# Or compile and run
+npx tsc src/server/index.ts --outDir dist --esModuleInterop
+node dist/server/index.js
+```
 
-## I want to use a custom domain - is that possible?
+## Features
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- Real-time sensor data monitoring
+- Temperature and humidity visualization
+- Alert configuration for threshold values
+- Modbus communication support
+- System status monitoring
+
+## Usage
+
+1. After starting both servers, navigate to http://localhost:8080 in your browser
+2. If the frontend can't connect to the backend, you'll see a notification to start the server
+3. Once connected, you can view sensor data, configure settings, and monitor system status
+
+## Troubleshooting
+
+If you experience connection errors:
+- Ensure both frontend and backend servers are running
+- Check that the backend is running on port 3001
+- Look for error messages in both terminal windows
