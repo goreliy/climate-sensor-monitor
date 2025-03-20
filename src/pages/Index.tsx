@@ -3,7 +3,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { Settings } from "@/components/Settings";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Settings2, Activity, Database, AlertTriangle, ServerOff } from "lucide-react";
+import { Settings2, Activity, Database, AlertTriangle, ServerOff, Terminal } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -22,7 +22,6 @@ const Index = () => {
       try {
         setServerStatus('checking');
         
-        // Always use the relative path for API calls
         console.log(`Проверка соединения с сервером: /api/system/status`);
         
         const controller = new AbortController();
@@ -117,13 +116,29 @@ const Index = () => {
         </div>
       </div>
       
-      {serverStatus === 'disconnected' && !useMockData && (
+      {serverStatus === 'disconnected' && (
         <Alert variant="destructive" className="mb-4 mx-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Предупреждение</AlertTitle>
-          <AlertDescription>
-            Нет соединения с сервером. Возможно, серверное приложение не запущено или недоступно. 
-            Запустите сервер командой <code>npm run server</code> в отдельном терминале или переключитесь в режим мок-данных.
+          <AlertTitle>Предупреждение: Сервер недоступен</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>
+              Нет соединения с сервером по адресу <code>http://localhost:3001</code>. 
+              {!useMockData ? ' В режиме реальных данных необходимо запустить сервер.' : ' Сервер не требуется в режиме мок-данных.'}
+            </p>
+            <div className="bg-muted p-2 rounded-md font-mono text-sm mt-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Terminal className="h-4 w-4" />
+                <span>Запустите сервер командой в отдельном терминале:</span>
+              </div>
+              <div className="mt-1 text-foreground">
+                <code>node src/server/index.js</code>
+              </div>
+            </div>
+            {!useMockData && (
+              <p className="mt-2">
+                Или переключитесь в режим мок-данных для работы без сервера.
+              </p>
+            )}
           </AlertDescription>
         </Alert>
       )}
