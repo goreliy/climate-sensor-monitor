@@ -60,13 +60,15 @@ npm install --save-dev typescript ts-node @types/node @types/express @types/cors
 
 2. Try manually compiling and running the server:
 ```sh
-npx tsc --project tsconfig.node.json
+npx typescript --project tsconfig.node.json
 node dist/server/index.js
 ```
 
 3. Check that your tsconfig.node.json file is correctly configured for compiling the server code.
 
 4. If you see errors about ES modules, remember that this project uses ES Module syntax in both frontend and backend code.
+
+5. If you see an error about the compiled file not being found, check the output directory in tsconfig.node.json and make sure it's set to dist/server.
 
 ## Features
 

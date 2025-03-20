@@ -37,7 +37,7 @@ if (!fs.existsSync(routesDir)) {
 console.log('Attempting to start the server...');
 
 try {
-  // Use direct TypeScript compilation approach
+  // Use typescript package directly instead of tsc alias
   console.log('Compiling TypeScript...');
   
   // First ensure the dist directory exists
@@ -47,18 +47,28 @@ try {
     console.log(`Created dist directory: ${distDir}`);
   }
   
-  // Compile TypeScript files
-  execSync('npx tsc --project tsconfig.node.json', { stdio: 'inherit' });
+  // Compile TypeScript files using the typescript package
+  console.log('Compiling with typescript...');
+  execSync('npx typescript --project tsconfig.node.json', { stdio: 'inherit' });
+  
+  // Check if the compiled file exists
+  const compiledFile = path.join(process.cwd(), 'dist', 'server', 'index.js');
+  if (!fs.existsSync(compiledFile)) {
+    throw new Error(`Compiled file not found: ${compiledFile}`);
+  }
   
   // Run the compiled JavaScript
   console.log('Running compiled JavaScript...');
   execSync('node dist/server/index.js', { stdio: 'inherit' });
 } catch (error) {
   console.error(`Error starting server: ${error.message}`);
-  console.log('\nTo start the server, try this command:');
-  console.log('npm install --save-dev typescript ts-node @types/node @types/express @types/cors');
-  console.log('npx tsc --project tsconfig.node.json');
-  console.log('node dist/server/index.js');
+  console.log('\nTo start the server, try these steps:');
+  console.log('1. Install development dependencies:');
+  console.log('   npm install --save-dev typescript ts-node @types/node @types/express @types/cors');
+  console.log('\n2. Compile TypeScript:');
+  console.log('   npx typescript --project tsconfig.node.json');
+  console.log('\n3. Run server:');
+  console.log('   node dist/server/index.js');
   
   process.exit(1);
 }
