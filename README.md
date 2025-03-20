@@ -22,6 +22,11 @@ The Climate Sensor Monitor is designed to help track temperature and humidity da
 npm install
 ```
 
+3. Install TypeScript development dependencies:
+```sh
+npm install --save-dev typescript ts-node @types/node @types/express @types/cors
+```
+
 ## Running the Application
 
 This application consists of two parts that need to be run separately:
@@ -46,18 +51,22 @@ This will compile and start the backend server. The server will be available at 
 
 ### Troubleshooting
 
-If you encounter an error about "ES module scope", make sure you're using the updated server-setup.js file, which uses ES Module syntax.
+If you encounter errors when starting the server:
 
-If you need to run the server directly without the setup script, use one of these commands:
-
+1. Make sure you've installed the TypeScript development dependencies:
 ```sh
-# Using ts-node (if installed)
-npx ts-node --transpile-only src/server/index.ts
+npm install --save-dev typescript ts-node @types/node @types/express @types/cors
+```
 
-# Or compile and run
-npx tsc src/server/index.ts --outDir dist --esModuleInterop
+2. Try manually compiling and running the server:
+```sh
+npx tsc --project tsconfig.node.json
 node dist/server/index.js
 ```
+
+3. Check that your tsconfig.node.json file is correctly configured for compiling the server code.
+
+4. If you see errors about ES modules, remember that this project uses ES Module syntax in both frontend and backend code.
 
 ## Features
 

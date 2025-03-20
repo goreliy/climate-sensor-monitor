@@ -37,29 +37,28 @@ if (!fs.existsSync(routesDir)) {
 console.log('Attempting to start the server...');
 
 try {
-  // Check if ts-node is available
-  try {
-    // Using dynamic import for checking if ts-node is installed
-    await import('ts-node');
-    console.log('Using ts-node to run the server');
-    execSync('npx ts-node --transpile-only src/server/index.ts', { stdio: 'inherit' });
-  } catch (e) {
-    console.log('ts-node not found, compiling TypeScript to JavaScript first');
-    
-    console.log('Compiling TypeScript...');
-    execSync('npx tsc src/server/index.ts --outDir dist --esModuleInterop', { stdio: 'inherit' });
-    
-    console.log('Running compiled JavaScript...');
-    execSync('node dist/server/index.js', { stdio: 'inherit' });
+  // Use direct TypeScript compilation approach
+  console.log('Compiling TypeScript...');
+  
+  // First ensure the dist directory exists
+  const distDir = path.join(process.cwd(), 'dist', 'server');
+  if (!fs.existsSync(distDir)) {
+    fs.mkdirSync(distDir, { recursive: true });
+    console.log(`Created dist directory: ${distDir}`);
   }
+  
+  // Compile TypeScript files
+  execSync('npx tsc --project tsconfig.node.json', { stdio: 'inherit' });
+  
+  // Run the compiled JavaScript
+  console.log('Running compiled JavaScript...');
+  execSync('node dist/server/index.js', { stdio: 'inherit' });
 } catch (error) {
   console.error(`Error starting server: ${error.message}`);
-  console.log('\nTo start the server, run one of these commands:');
-  console.log('1. Using ts-node:');
-  console.log('   npx ts-node --transpile-only src/server/index.ts');
-  console.log('\n2. Compile and run:');
-  console.log('   npx tsc src/server/index.ts --outDir dist --esModuleInterop');
-  console.log('   node dist/server/index.js');
+  console.log('\nTo start the server, try this command:');
+  console.log('npm install --save-dev typescript ts-node @types/node @types/express @types/cors');
+  console.log('npx tsc --project tsconfig.node.json');
+  console.log('node dist/server/index.js');
   
   process.exit(1);
 }
