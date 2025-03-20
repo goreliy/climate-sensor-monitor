@@ -93,7 +93,8 @@ app.listen(PORT, () => {
   
   try {
     console.log('Starting fallback server...');
-    execSync(`node ${fallbackServerPath}`, { stdio: 'inherit' });
+    // Use double quotes around file paths to handle spaces
+    execSync(`node "${fallbackServerPath}"`, { stdio: 'inherit' });
   } catch (error) {
     console.error(`Error starting fallback server: ${error.message}`);
     process.exit(1);
@@ -109,9 +110,9 @@ try {
   }
   
   try {
-    // Try to start the server directly from TypeScript
-    console.log('Attempting to start server using ts-node...');
-    execSync('npx ts-node --transpile-only src/server/index.ts', { stdio: 'inherit' });
+    // Use CommonJS mode with ts-node to avoid ESM issues with .ts files
+    console.log('Attempting to start server using ts-node in CommonJS mode...');
+    execSync('npx ts-node --transpile-only --compilerOptions {"module":"CommonJS"} src/server/index.ts', { stdio: 'inherit' });
   } catch (tsNodeError) {
     console.log(`ts-node failed: ${tsNodeError.message}`);
     console.log('Falling back to TypeScript compilation...');
@@ -123,7 +124,7 @@ try {
       const compiledFile = path.join(process.cwd(), 'dist', 'server', 'index.js');
       if (fs.existsSync(compiledFile)) {
         console.log('Compilation successful, running compiled JavaScript...');
-        execSync('node dist/server/index.js', { stdio: 'inherit' });
+        execSync(`node "${compiledFile}"`, { stdio: 'inherit' });
       } else {
         console.error('Compiled file not found, starting fallback server...');
         createFallbackServer();

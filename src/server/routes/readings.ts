@@ -34,7 +34,7 @@ router.get('/latest', (req, res) => {
       }
       
       // Process the results to get the latest reading for each sensor
-      const latestReadings = {};
+      const latestReadings: Record<string, any> = {};
       
       rows.forEach(reading => {
         if (!latestReadings[reading.sensor_id] || 
