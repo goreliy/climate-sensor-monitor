@@ -1,4 +1,3 @@
-
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -207,14 +206,14 @@ router.get('/scan', async (req: Request, res: Response) => {
       mockPorts = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5'].map(path => ({ path }));
     }
     
-    res.json({ 
+    return res.json({ 
       success: true, 
       ports: mockPorts,
       isMock: true
     });
   } catch (error) {
     console.error('Error scanning ports:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false, 
       error: String(error),
       message: 'Failed to scan ports'
@@ -269,7 +268,7 @@ router.post('/connect', async (req: Request, res: Response) => {
       isMock: true
     });
     
-    res.json({
+    return res.json({
       success: true,
       message: `Connected to ${port} with baud rate ${baudRate} (Web Modbus emulation)`,
       isOpen: true,
@@ -280,7 +279,7 @@ router.post('/connect', async (req: Request, res: Response) => {
     
     isConnected = false;
     
-    res.json({
+    return res.json({
       success: false,
       message: `Failed to connect: ${error}`,
       isOpen: false,
@@ -308,7 +307,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
       isMock: true
     });
     
-    res.json({
+    return res.json({
       success: true,
       message: 'Disconnected (Web Modbus emulation)',
       isOpen: false,
@@ -321,7 +320,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
     isConnected = false;
     currentPort = null;
     
-    res.json({
+    return res.json({
       success: true,
       message: `Disconnected with error: ${error}`,
       isOpen: false,
@@ -333,7 +332,7 @@ router.post('/disconnect', async (req: Request, res: Response) => {
 
 // Connection status
 router.get('/status', (req: Request, res: Response) => {
-  res.json({
+  return res.json({
     isOpen: isConnected,
     port: currentPort,
     isMock: true
@@ -389,7 +388,7 @@ router.post('/read', async (req: Request, res: Response) => {
       isMock: true
     });
     
-    res.json({
+    return res.json({
       success: true,
       data,
       address,
@@ -424,7 +423,7 @@ router.post('/read', async (req: Request, res: Response) => {
       isMock: true
     });
     
-    res.json({
+    return res.json({
       success: true,
       data,
       address,
@@ -468,7 +467,7 @@ router.post('/write', async (req: Request, res: Response) => {
       isMock: true
     });
     
-    res.json({
+    return res.json({
       success: true,
       address,
       value,
@@ -495,7 +494,7 @@ router.post('/write', async (req: Request, res: Response) => {
       isMock: true
     });
     
-    res.json({
+    return res.json({
       success: true,
       address,
       value,
@@ -507,13 +506,13 @@ router.post('/write', async (req: Request, res: Response) => {
 
 // Modbus log
 router.get('/logs', (req: Request, res: Response) => {
-  res.json(modbusPacketLog);
+  return res.json(modbusPacketLog);
 });
 
 // Clear Modbus log
 router.post('/logs/clear', (req: Request, res: Response) => {
   modbusPacketLog = [];
-  res.json({ success: true, message: 'Logs cleared' });
+  return res.json({ success: true, message: 'Logs cleared' });
 });
 
 export default router;
