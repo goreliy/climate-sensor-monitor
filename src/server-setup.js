@@ -44,8 +44,8 @@ const createFallbackServer = () => {
   const fallbackServerPath = path.join(__dirname, 'server', 'fallback-server.js');
   const fallbackServerContent = `
 // Fallback server implementation
-import express from 'express';
-import cors from 'cors';
+const express = require('express');
+const cors = require('cors');
 
 const app = express();
 app.use(cors());
@@ -85,6 +85,7 @@ mockRoutes.forEach(route => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(\`Fallback server running on port \${PORT}\`);
+  console.log(\`Web interface available at http://localhost:8080\`);
 });
 `;
   
@@ -110,16 +111,16 @@ try {
   }
   
   try {
-    // Use CommonJS mode with ts-node to avoid ESM issues with .ts files
-    console.log('Attempting to start server using ts-node in CommonJS mode...');
-    execSync('npx ts-node --transpile-only --compilerOptions {"module":"CommonJS"} src/server/index.ts', { stdio: 'inherit' });
+    // Try to start with ts-node with fixed command syntax
+    console.log('Attempting to start server using ts-node...');
+    execSync('npx ts-node --transpile-only -P tsconfig.node.json src/server/index.ts', { stdio: 'inherit' });
   } catch (tsNodeError) {
     console.log(`ts-node failed: ${tsNodeError.message}`);
     console.log('Falling back to TypeScript compilation...');
     
     try {
       console.log('Compiling with TypeScript...');
-      execSync('npx tsc --project tsconfig.node.json', { stdio: 'inherit' });
+      execSync('npx typescript --project tsconfig.node.json', { stdio: 'inherit' });
       
       const compiledFile = path.join(process.cwd(), 'dist', 'server', 'index.js');
       if (fs.existsSync(compiledFile)) {

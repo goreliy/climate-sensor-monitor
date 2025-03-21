@@ -24,49 +24,43 @@ npm install
 
 ## Running the Application
 
-This application consists of two parts that can be run together or separately:
+This application consists of a frontend and backend server. The backend server can be run in different modes:
 
-### Option 1: Start Both Frontend and Backend (Recommended)
+### Running the Server
 
 ```sh
-npm run dev
+# Start server (automatically starts in fallback mode if native modules fail)
+node src/server-setup.js
 ```
 
-This will start both the Vite development server for the frontend and the backend server.
+### Important Notes for Windows Users
 
-### Option 2: Start Frontend and Backend Separately
+If you're on Windows and have spaces in your path (e.g., "C:\Program Files\..." or folders with spaces), you might encounter issues. In this case:
 
-1. Start the Frontend Server:
-```sh
-npm run dev:frontend
-```
-
-2. In a separate terminal, start the Backend Server:
-```sh
-npm run dev:backend
-```
+1. Use the fallback mode which will start automatically
+2. Make sure your terminal has the right permissions
 
 ### Web Mode (No Native Dependencies)
 
-If you encounter issues with native dependencies like SQLite, the application will automatically fall back to a web-compatible mode that uses in-memory storage. This is perfect for development and testing.
+The application is designed to work in a fully web-compatible mode with an in-memory database. This fallback mode will automatically activate if there are issues with native dependencies.
 
 ### Troubleshooting
 
 If you encounter errors when starting the server:
 
-1. Try running with the simplified setup:
+1. Ensure you have installed all the required dependencies:
+```sh
+npm install express typescript ts-node @types/express @types/cors @types/node
+```
+
+2. Try running with the fallback server which doesn't require any native modules:
 ```sh
 node src/server-setup.js
 ```
 
-2. If you see errors about missing modules or compilation failures, the system will automatically start a fallback server that works in any environment.
+3. Check console logs for detailed error messages.
 
-3. For frontend-only development, you can run just the Vite server:
-```sh
-npm run dev:frontend
-```
-
-4. Check the console for any error messages or warnings.
+4. If you see errors about file paths with spaces, ensure all commands use proper quoting.
 
 ## Features
 
@@ -89,4 +83,3 @@ npm run dev:frontend
 - The application uses an in-memory database in development mode
 - No actual hardware connections are required for testing and development
 - All Modbus communication is simulated for development purposes
-
