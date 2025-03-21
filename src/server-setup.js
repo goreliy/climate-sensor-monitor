@@ -113,7 +113,7 @@ try {
   try {
     // Try to start with ts-node with proper JSON format for compiler options
     console.log('Attempting to start server using ts-node...');
-    const tsNodeOptions = `{"module":"CommonJS"}`;
+    const tsNodeOptions = JSON.stringify({"module":"CommonJS"});
     execSync(`npx ts-node --transpile-only -r tsconfig-paths/register src/server/index.ts`, { 
       stdio: 'inherit',
       env: { ...process.env, TS_NODE_COMPILER_OPTIONS: tsNodeOptions }
