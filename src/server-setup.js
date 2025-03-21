@@ -113,9 +113,10 @@ try {
   try {
     // Try to start with ts-node with proper command syntax
     console.log('Attempting to start server using ts-node...');
-    execSync('npx ts-node --transpile-only -r tsconfig-paths/register src/server/index.ts', { 
+    const tsNodeOptions = JSON.stringify({ module: "CommonJS" });
+    execSync(`npx ts-node --transpile-only -r tsconfig-paths/register src/server/index.ts`, { 
       stdio: 'inherit',
-      env: { ...process.env, TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}' }
+      env: { ...process.env, TS_NODE_COMPILER_OPTIONS: tsNodeOptions }
     });
   } catch (tsNodeError) {
     console.log(`ts-node failed: ${tsNodeError.message}`);
@@ -123,7 +124,7 @@ try {
     
     try {
       console.log('Compiling with TypeScript...');
-      execSync('npx typescript --project tsconfig.node.json', { stdio: 'inherit' });
+      execSync('npx tsc --project tsconfig.node.json', { stdio: 'inherit' });
       
       const compiledFile = path.join(process.cwd(), 'dist', 'server', 'index.js');
       if (fs.existsSync(compiledFile)) {

@@ -1,8 +1,9 @@
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { setTimeout } from 'timers/promises';
+import { ModbusSettings } from '../types';
 
 const router = Router();
 
@@ -181,7 +182,7 @@ class WebModbusRTU {
 const modbusClient = new WebModbusRTU();
 
 // Scanning available ports
-router.get('/scan', async (req, res) => {
+router.get('/scan', async (req: Request, res: Response) => {
   try {
     // Simulate scanning delay
     await setTimeout(500);
@@ -222,7 +223,7 @@ router.get('/scan', async (req, res) => {
 });
 
 // Connect to port
-router.post('/connect', async (req, res) => {
+router.post('/connect', async (req: Request, res: Response) => {
   const { port, baudRate = 9600, dataBits = 8, parity = 'none', stopBits = 1 } = req.body;
 
   if (!port) {
@@ -290,7 +291,7 @@ router.post('/connect', async (req, res) => {
 });
 
 // Disconnect from port
-router.post('/disconnect', async (req, res) => {
+router.post('/disconnect', async (req: Request, res: Response) => {
   try {
     if (modbusClient.isOpen) {
       await modbusClient.close();
@@ -331,7 +332,7 @@ router.post('/disconnect', async (req, res) => {
 });
 
 // Connection status
-router.get('/status', (req, res) => {
+router.get('/status', (req: Request, res: Response) => {
   res.json({
     isOpen: isConnected,
     port: currentPort,
@@ -340,7 +341,7 @@ router.get('/status', (req, res) => {
 });
 
 // Read registers
-router.post('/read', async (req, res) => {
+router.post('/read', async (req: Request, res: Response) => {
   const { address = 0, length = 1, slaveId = 1, functionCode = 3 } = req.body;
 
   if (!isConnected) {
@@ -435,7 +436,7 @@ router.post('/read', async (req, res) => {
 });
 
 // Write to register
-router.post('/write', async (req, res) => {
+router.post('/write', async (req: Request, res: Response) => {
   const { address = 0, value = 0, slaveId = 1 } = req.body;
 
   if (!isConnected) {
@@ -505,12 +506,12 @@ router.post('/write', async (req, res) => {
 });
 
 // Modbus log
-router.get('/logs', (req, res) => {
+router.get('/logs', (req: Request, res: Response) => {
   res.json(modbusPacketLog);
 });
 
 // Clear Modbus log
-router.post('/logs/clear', (req, res) => {
+router.post('/logs/clear', (req: Request, res: Response) => {
   modbusPacketLog = [];
   res.json({ success: true, message: 'Logs cleared' });
 });

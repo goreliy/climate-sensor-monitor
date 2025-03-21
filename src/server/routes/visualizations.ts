@@ -1,12 +1,12 @@
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { db, DBVisualizationMap } from '../db';
 import { VisualizationMap, SensorPlacement } from '../types';
 
 const router = Router();
 
 // Get all visualization maps
-router.get('/', (req, res) => {
+router.get('/', (req: Request, res: Response) => {
   db.all('SELECT * FROM visualization_maps', [], (err, rows: DBVisualizationMap[]) => {
     if (err) {
       console.error('Error fetching visualization maps:', err);
@@ -27,7 +27,7 @@ router.get('/', (req, res) => {
 });
 
 // Get a specific visualization map
-router.get('/:id', (req, res) => {
+router.get('/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   
   db.get('SELECT * FROM visualization_maps WHERE id = ?', [id], (err, row: DBVisualizationMap) => {
@@ -55,7 +55,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create a new visualization map
-router.post('/', (req, res) => {
+router.post('/', (req: Request, res: Response) => {
   const { name, imagePath, sensorPlacements } = req.body as {
     name: string;
     imagePath: string;
@@ -89,7 +89,7 @@ router.post('/', (req, res) => {
 });
 
 // Update an existing visualization map
-router.put('/:id', (req, res) => {
+router.put('/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const { name, imagePath, sensorPlacements } = req.body as VisualizationMap;
   
@@ -126,7 +126,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete a visualization map
-router.delete('/:id', (req, res) => {
+router.delete('/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   
   db.run('DELETE FROM visualization_maps WHERE id = ?', [id], function(err) {
