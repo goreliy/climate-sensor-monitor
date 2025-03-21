@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
 // Get readings for a specific sensor
 router.get('/:id/readings', (req, res) => {
   const { id } = req.params;
-  const { limit = 30, startDate, endDate } = req.query;
+  const { limit = '30', startDate, endDate } = req.query;
   
   let query = 'SELECT * FROM sensor_readings WHERE sensor_id = ?';
   const params = [id];
@@ -29,7 +29,7 @@ router.get('/:id/readings', (req, res) => {
   }
   
   query += ' ORDER BY timestamp DESC LIMIT ?';
-  params.push(limit);
+  params.push(String(limit)); // Convert to string to ensure compatibility
   
   db.all(
     query,

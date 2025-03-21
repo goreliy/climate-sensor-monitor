@@ -40,7 +40,7 @@ console.log('Attempting to start the server...');
 const createFallbackServer = () => {
   console.log('Creating fallback in-memory server implementation...');
   
-  // Create a fallback implementation file
+  // Create a fallback implementation file using CommonJS format
   const fallbackServerPath = path.join(__dirname, 'server', 'fallback-server.js');
   const fallbackServerContent = `
 // Fallback server implementation
@@ -111,9 +111,12 @@ try {
   }
   
   try {
-    // Try to start with ts-node with fixed command syntax
+    // Try to start with ts-node with proper command syntax
     console.log('Attempting to start server using ts-node...');
-    execSync('npx ts-node --transpile-only -P tsconfig.node.json src/server/index.ts', { stdio: 'inherit' });
+    execSync('npx ts-node --transpile-only -r tsconfig-paths/register src/server/index.ts', { 
+      stdio: 'inherit',
+      env: { ...process.env, TS_NODE_COMPILER_OPTIONS: '{"module":"CommonJS"}' }
+    });
   } catch (tsNodeError) {
     console.log(`ts-node failed: ${tsNodeError.message}`);
     console.log('Falling back to TypeScript compilation...');

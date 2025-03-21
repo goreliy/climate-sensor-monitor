@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
 import { db, DBVisualizationMap } from '../db';
-import { VisualizationMap, SensorPlacement } from '@/components/settings/types';
+import { VisualizationMap, SensorPlacement } from '../types';
 
 const router = Router();
 
