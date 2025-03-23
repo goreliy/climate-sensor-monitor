@@ -1,5 +1,5 @@
 
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { scanPorts, connectToPort, disconnectFromPort, getConnectionStatus } from '../modbus/connectionRoutes';
 import { readRegisters, writeRegister } from '../modbus/dataRoutes';
 import { getLogs, clearLogs } from '../modbus/logRoutes';
