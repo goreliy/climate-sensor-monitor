@@ -6,14 +6,15 @@ import { modbusClient, isConnected, mockRegisters } from './connectionRoutes';
 /**
  * Read registers
  */
-export async function readRegisters(req: Request, res: Response) {
+export async function readRegisters(req: Request, res: Response): Promise<void> {
   const { address = 0, length = 1, slaveId = 1, functionCode = 3 } = req.body;
 
   if (!isConnected) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'Not connected'
     });
+    return;
   }
 
   try {
@@ -54,7 +55,7 @@ export async function readRegisters(req: Request, res: Response) {
       isMock: true
     });
     
-    return res.json({
+    res.json({
       success: true,
       data,
       address,
@@ -89,7 +90,7 @@ export async function readRegisters(req: Request, res: Response) {
       isMock: true
     });
     
-    return res.json({
+    res.json({
       success: true,
       data,
       address,
@@ -103,14 +104,15 @@ export async function readRegisters(req: Request, res: Response) {
 /**
  * Write to register
  */
-export async function writeRegister(req: Request, res: Response) {
+export async function writeRegister(req: Request, res: Response): Promise<void> {
   const { address = 0, value = 0, slaveId = 1 } = req.body;
 
   if (!isConnected) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'Not connected'
     });
+    return;
   }
 
   try {
@@ -135,7 +137,7 @@ export async function writeRegister(req: Request, res: Response) {
       isMock: true
     });
     
-    return res.json({
+    res.json({
       success: true,
       address,
       value,
@@ -162,7 +164,7 @@ export async function writeRegister(req: Request, res: Response) {
       isMock: true
     });
     
-    return res.json({
+    res.json({
       success: true,
       address,
       value,

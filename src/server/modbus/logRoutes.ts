@@ -5,14 +5,14 @@ import { getModbusPacketLog, clearModbusPacketLog } from './utils';
 /**
  * Get Modbus logs
  */
-export function getLogs(req: Request, res: Response) {
-  return res.json(getModbusPacketLog());
+export function getLogs(req: Request, res: Response): void {
+  res.json(getModbusPacketLog());
 }
 
 /**
  * Clear Modbus logs
  */
-export function clearLogs(req: Request, res: Response) {
+export function clearLogs(req: Request, res: Response): void {
   clearModbusPacketLog();
-  return res.json({ success: true, message: 'Logs cleared' });
+  res.json({ success: true, message: 'Logs cleared' });
 }

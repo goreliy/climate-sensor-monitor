@@ -19,7 +19,7 @@ const modbusClient = new WebModbusRTU();
 /**
  * Scanning available ports
  */
-export async function scanPorts(req: Request, res: Response) {
+export async function scanPorts(req: Request, res: Response): Promise<void> {
   try {
     // Simulate scanning delay
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -44,14 +44,14 @@ export async function scanPorts(req: Request, res: Response) {
       mockPorts = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5'].map(path => ({ path }));
     }
     
-    return res.json({ 
+    res.json({ 
       success: true, 
       ports: mockPorts,
       isMock: true
     });
   } catch (error) {
     console.error('Error scanning ports:', error);
-    return res.status(500).json({ 
+    res.status(500).json({ 
       success: false, 
       error: String(error),
       message: 'Failed to scan ports'
@@ -62,14 +62,15 @@ export async function scanPorts(req: Request, res: Response) {
 /**
  * Connect to port
  */
-export async function connectToPort(req: Request, res: Response) {
+export async function connectToPort(req: Request, res: Response): Promise<void> {
   const { port, baudRate = 9600, dataBits = 8, parity = 'none', stopBits = 1 } = req.body;
 
   if (!port) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'Port is required'
     });
+    return;
   }
 
   try {
@@ -108,7 +109,7 @@ export async function connectToPort(req: Request, res: Response) {
       isMock: true
     });
     
-    return res.json({
+    res.json({
       success: true,
       message: `Connected to ${port} with baud rate ${baudRate} (Web Modbus emulation)`,
       isOpen: true,
@@ -119,7 +120,7 @@ export async function connectToPort(req: Request, res: Response) {
     
     isConnected = false;
     
-    return res.json({
+    res.json({
       success: false,
       message: `Failed to connect: ${error}`,
       isOpen: false,
@@ -132,7 +133,7 @@ export async function connectToPort(req: Request, res: Response) {
 /**
  * Disconnect from port
  */
-export async function disconnectFromPort(req: Request, res: Response) {
+export async function disconnectFromPort(req: Request, res: Response): Promise<void> {
   try {
     if (modbusClient.isOpen) {
       await modbusClient.close();
@@ -149,7 +150,7 @@ export async function disconnectFromPort(req: Request, res: Response) {
       isMock: true
     });
     
-    return res.json({
+    res.json({
       success: true,
       message: 'Disconnected (Web Modbus emulation)',
       isOpen: false,
@@ -162,7 +163,7 @@ export async function disconnectFromPort(req: Request, res: Response) {
     isConnected = false;
     currentPort = null;
     
-    return res.json({
+    res.json({
       success: true,
       message: `Disconnected with error: ${error}`,
       isOpen: false,
@@ -175,8 +176,8 @@ export async function disconnectFromPort(req: Request, res: Response) {
 /**
  * Connection status
  */
-export function getConnectionStatus(req: Request, res: Response) {
-  return res.json({
+export function getConnectionStatus(req: Request, res: Response): void {
+  res.json({
     isOpen: isConnected,
     port: currentPort,
     isMock: true

@@ -1,5 +1,5 @@
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { scanPorts, connectToPort, disconnectFromPort, getConnectionStatus } from '../modbus/connectionRoutes';
 import { readRegisters, writeRegister } from '../modbus/dataRoutes';
 import { getLogs, clearLogs } from '../modbus/logRoutes';
@@ -7,17 +7,17 @@ import { getLogs, clearLogs } from '../modbus/logRoutes';
 const router = Router();
 
 // Connection routes
-router.route('/scan').get(scanPorts);
-router.route('/connect').post(connectToPort);
-router.route('/disconnect').post(disconnectFromPort);
-router.route('/status').get(getConnectionStatus);
+router.get('/scan', scanPorts);
+router.post('/connect', connectToPort);
+router.post('/disconnect', disconnectFromPort);
+router.get('/status', getConnectionStatus);
 
 // Data operation routes
-router.route('/read').post(readRegisters);
-router.route('/write').post(writeRegister);
+router.post('/read', readRegisters);
+router.post('/write', writeRegister);
 
 // Log management routes
-router.route('/logs').get(getLogs);
-router.route('/logs/clear').post(clearLogs);
+router.get('/logs', getLogs);
+router.post('/logs/clear', clearLogs);
 
 export default router;
