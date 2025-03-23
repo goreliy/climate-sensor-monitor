@@ -7,17 +7,17 @@ import { getLogs, clearLogs } from '../modbus/logRoutes';
 const router = Router();
 
 // Connection routes
-router.get('/scan', (req: Request, res: Response) => scanPorts(req, res));
-router.post('/connect', (req: Request, res: Response) => connectToPort(req, res));
-router.post('/disconnect', (req: Request, res: Response) => disconnectFromPort(req, res));
-router.get('/status', (req: Request, res: Response) => getConnectionStatus(req, res));
+router.get('/scan', scanPorts);
+router.post('/connect', connectToPort);
+router.post('/disconnect', disconnectFromPort);
+router.get('/status', getConnectionStatus);
 
 // Data operation routes
-router.post('/read', (req: Request, res: Response) => readRegisters(req, res));
-router.post('/write', (req: Request, res: Response) => writeRegister(req, res));
+router.post('/read', readRegisters);
+router.post('/write', writeRegister);
 
 // Log management routes
-router.get('/logs', (req: Request, res: Response) => getLogs(req, res));
-router.post('/logs/clear', (req: Request, res: Response) => clearLogs(req, res));
+router.get('/logs', getLogs);
+router.post('/logs/clear', clearLogs);
 
 export default router;
